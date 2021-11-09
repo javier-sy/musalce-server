@@ -9,25 +9,25 @@ class Handler
 
     @tracks = tracks
 
-    @server.add_method '/musa4l/tracks' do |message|
+    @server.add_method '/musalce4live/tracks' do |message|
       message.to_a.each_slice(10).to_a.each do |track_data|
         @tracks.grant_registry(*track_data)
       end
     end
 
-    @server.add_method '/musa4l/track/routings' do |message|
+    @server.add_method '/musalce4live/track/routings' do |message|
       message.to_a.each_slice(5).to_a.each do |track_data|
         @tracks.grant_registry(track_data[0], *([nil] * 5), *track_data[1..])
       end
     end
 
-    @server.add_method '/musa4l/track/midi_audio' do |message|
+    @server.add_method '/musalce4live/track/midi_audio' do |message|
       message.to_a.each_slice(5).to_a.each do |track_data|
         @tracks.grant_registry(track_data[0], *track_data[1..])
       end
     end
 
-    @server.add_method '/musa4l/track/name' do |message|
+    @server.add_method '/musalce4live/track/name' do |message|
       message.to_a.each_slice(2).to_a.each do |track_data|
         @tracks.grant_registry(track_data[0], track_data[1])
       end
@@ -35,7 +35,7 @@ class Handler
   end
 
   def sync
-    send '/musa4l/tracks'
+    send '/musalce4live/tracks'
   end
 
   private def send(message, *args)
