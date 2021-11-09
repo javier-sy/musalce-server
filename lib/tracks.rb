@@ -59,6 +59,20 @@ class Tracks
     @tracks = {}
   end
 
+  def grant_registry_collection(tracks_data)
+    tracks_to_delete = Set[*@tracks.keys]
+
+    tracks_data.each do |track_data|
+      grant_registry(*track_data)
+      tracks_to_delete.delete track_data[0]
+    end
+
+    tracks_to_delete.each do |id|
+      @tracks.delete(id)
+      puts "deleted track #{id}"
+    end
+  end
+
   def grant_registry(id, name = nil,
                      has_midi_input = nil, has_midi_output = nil,
                      has_audio_input = nil, has_audio_output = nil,

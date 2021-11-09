@@ -10,9 +10,7 @@ class Handler
     @tracks = tracks
 
     @server.add_method '/musalce4live/tracks' do |message|
-      message.to_a.each_slice(10).to_a.each do |track_data|
-        @tracks.grant_registry(*track_data)
-      end
+      @tracks.grant_registry_collection(message.to_a.each_slice(10).to_a)
     end
 
     @server.add_method '/musalce4live/track/routings' do |message|
