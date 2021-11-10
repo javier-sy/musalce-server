@@ -16,18 +16,17 @@ class Live
 
     Thread.new { osc_server.run }
 
-    @clock = Musa::Clock::InputMidiClock.new do_log: true
-
     @sequencer = Musa::Sequencer::Sequencer.new 4, 24, do_log: true
 
-    transport = Musa::Transport::Transport.new clock, sequencer: @sequencer
+    @clock = Musa::Clock::InputMidiClock.new do_log: true, logger: @sequencer.logger
+    transport = Musa::Transport::Transport.new @clock, sequencer: @sequencer
 
     transport.after_stop do
       sequencer.reset
     end
 
     @midi_devices = MIDIDevices.new(@sequencer)
-    @tracks = Tracks.new(@midi_devices)
+    @tracks = Tracks.new(@midi_devices, logger: @sequencer.logger)
     @handler = Handler.new(osc_server, osc_client, @tracks)
 
     @handler.sync

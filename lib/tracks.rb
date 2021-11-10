@@ -1,9 +1,11 @@
 require 'musa-dsl/core-ext/dynamic-proxy'
 
 class Track
-  def initialize(id, midi_devices)
+  def initialize(id, midi_devices, logger:)
     @id = id
     @midi_devices = midi_devices
+    @logger = logger
+
     @output = Musa::Extension::DynamicProxy::DynamicProxy.new
   end
 
@@ -15,7 +17,7 @@ class Track
 
   def _update_name(value)
     @name = value
-    puts "track #{@id} assigned name #{@name}"
+    @logger.info "track #{@id} assigned name #{@name}"
   end
 
   def _update_has_midi_input(value); @has_midi_input = value == 1; end
@@ -39,7 +41,7 @@ class Track
         port = /Ch\. (?<port>\d+)/.match(@current_input_sub_routing)&.[](:port)
         effective_midi_voice = device.ports[port.to_i - 1] if port
 
-        puts "track #{@id} assigned new input: device '#{device.name}' #{effective_midi_voice}"
+        @logger.info "track #{@id} assigned new input: device '#{device.name}' #{effective_midi_voice}"
       end
     end
 
@@ -54,8 +56,9 @@ end
 class Tracks
   include Enumerable
 
-  def initialize(midi_devices)
+  def initialize(midi_devices, logger:)
     @midi_devices = midi_devices
+    @logger = logger
     @tracks = {}
   end
 
@@ -69,7 +72,7 @@ class Tracks
 
     tracks_to_delete.each do |id|
       @tracks.delete(id)
-      puts "deleted track #{id}"
+      @logger.info "deleted track #{id}"
     end
   end
 
@@ -82,7 +85,7 @@ class Tracks
     track = @tracks[id]
 
     unless track
-      track = Track.new(id, @midi_devices)
+      track = Track.new(id, @midi_devices, logger: @logger)
       @tracks[id] = track
     end
 

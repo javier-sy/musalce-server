@@ -13,21 +13,27 @@ class Handler
       @tracks.grant_registry_collection(message.to_a.each_slice(10).to_a)
     end
 
-    @server.add_method '/musalce4live/track/routings' do |message|
-      message.to_a.each_slice(5).to_a.each do |track_data|
-        @tracks.grant_registry(track_data[0], *([nil] * 5), *track_data[1..])
-      end
-    end
-
-    @server.add_method '/musalce4live/track/midi_audio' do |message|
-      message.to_a.each_slice(5).to_a.each do |track_data|
-        @tracks.grant_registry(track_data[0], *track_data[1..])
-      end
-    end
-
     @server.add_method '/musalce4live/track/name' do |message|
       message.to_a.each_slice(2).to_a.each do |track_data|
         @tracks.grant_registry(track_data[0], track_data[1])
+      end
+    end
+
+    @server.add_method '/musalce4live/track/midi' do |message|
+      message.to_a.each_slice(3).to_a.each do |track_data|
+        @tracks.grant_registry(track_data[0], *([nil] * 1), *track_data[1..])
+      end
+    end
+
+    @server.add_method '/musalce4live/track/audio' do |message|
+      message.to_a.each_slice(3).to_a.each do |track_data|
+        @tracks.grant_registry(track_data[0], *([nil] * 3), *track_data[1..])
+      end
+    end
+
+    @server.add_method '/musalce4live/track/routings' do |message|
+      message.to_a.each_slice(5).to_a.each do |track_data|
+        @tracks.grant_registry(track_data[0], *([nil] * 5), *track_data[1..])
       end
     end
   end

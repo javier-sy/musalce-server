@@ -9,6 +9,8 @@ main_thread = Thread.current
 live = Live.default
 
 live.sequencer.with(main_thread: main_thread, live: live) do |main_thread:, live:|
+  @keep_proc_context_on_with = true
+
   @__main_thread = main_thread
   @__live = live
 
@@ -29,6 +31,12 @@ live.sequencer.with(main_thread: main_thread, live: live) do |main_thread:, live
 
   def live
     @__live
+  end
+
+
+  def reset
+    # TODO
+    puts "reset: missing operation"
   end
 
   def shutdown
