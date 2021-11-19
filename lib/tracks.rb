@@ -11,7 +11,7 @@ class Track
 
   attr_reader :id, :name
 
-  def send
+  def out
     @output
   end
 
