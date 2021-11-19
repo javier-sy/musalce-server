@@ -1,4 +1,4 @@
-require 'unimidi'
+require 'midi-communications'
 
 require_relative 'handler'
 
@@ -36,8 +36,14 @@ class Live
 
   attr_reader :clock, :tracks, :sequencer
 
-  def clock=(clock_midi_port_name)
-    @clock.input = UniMIDI::Input.all.find { |_| _.name.end_with?(clock_midi_port_name) }
+  def midi_sync(midi_device_name, manufacturer: nil, model: nil, name: nil)
+    name ||= midi_device_name
+
+    @clock.input = MIDICommunications::Input.all.find do |_|
+      (_.manufacturer == manufacturer || manufacturer.nil?) &&
+        (_.model == model || model.nil?) &&
+        (_.name == name || name.nil?)
+    end
   end
 
   def sync

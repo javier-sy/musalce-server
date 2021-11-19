@@ -1,4 +1,4 @@
-require 'unimidi'
+require 'midi-communications'
 
 require 'musa-dsl/midi/midi-voices'
 
@@ -15,7 +15,7 @@ class MIDIDevices
   def sync
     names = @unimidi_devices.keys
 
-    UniMIDI::Output.all.each do |unimidi_device|
+    MIDICommunications::Output.all.each do |unimidi_device|
       next if @unimidi_devices.key?(unimidi_device.name)
 
       @unimidi_devices[unimidi_device.name] = MIDIDevice.new(@sequencer, unimidi_device)
