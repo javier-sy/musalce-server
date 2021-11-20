@@ -20,13 +20,22 @@ class Track
     @logger.info "track #{@id} assigned name #{@name}"
   end
 
-  def _update_has_midi_input(value); @has_midi_input = value == 1; end
-  def _update_has_midi_output(value); @has_midi_output = value == 1; end
-  def _update_has_audio_input(value); @has_audio_input = value == 1; end
-  def _update_has_audio_output(value); @has_audio_output = value == 1; end
+  def _update_has_midi_input(value); 
+    @has_midi_input = value == 1; 
+  end
+  def _update_has_midi_output(value); 
+    @has_midi_output = value == 1; 
+  end
+  def _update_has_audio_input(value); 
+    @has_audio_input = value == 1; 
+  end
+  def _update_has_audio_output(value); 
+    @has_audio_output = value == 1; 
+  end
 
   def _update_current_input_routing(value)
     @current_input_routing = value
+    _update_current_input_sub_routing(@current_input_sub_routing)
   end
 
   def _update_current_input_sub_routing(value)
@@ -48,10 +57,14 @@ class Track
     @output.receiver = effective_midi_voice
   end
 
-  def _update_current_output_routing(value); @current_output_routing = value; end
-  def _update_current_output_sub_routing(value); @current_output_sub_routing = value; end
-end
+  def _update_current_output_routing(value); 
+    @current_output_routing = value
+  end
 
+  def _update_current_output_sub_routing(value); 
+    @current_output_sub_routing = value
+  end
+end
 
 class Tracks
   include Enumerable
@@ -94,9 +107,9 @@ class Tracks
     track._update_has_midi_output(has_midi_output) if has_midi_output
     track._update_has_audio_input(has_audio_input) if has_audio_input
     track._update_has_audio_output(has_audio_output) if has_audio_output
-    track._update_current_input_routing(current_input_routing) if current_input_routing
+    track._update_current_input_routing(parse_device_name(current_input_routing)) if current_input_routing
     track._update_current_input_sub_routing(current_input_sub_routing) if current_input_sub_routing
-    track._update_current_output_routing(current_output_routing) if current_output_routing
+    track._update_current_output_routing(parse_device_name(current_output_routing)) if current_output_routing
     track._update_current_output_sub_routing(current_output_sub_routing) if current_output_sub_routing
   end
 
@@ -114,5 +127,10 @@ class Tracks
 
   def find_by_name(name)
     @tracks.values.select { |_| _.name == name }
+  end
+
+  private def parse_device_name(name)
+    match = name.match(/Driver IAC \((?<name>.+)\)/)
+    match ? match[:name] : name
   end
 end
