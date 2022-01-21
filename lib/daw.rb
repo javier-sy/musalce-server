@@ -1,13 +1,15 @@
 require 'midi-communications'
 
-require_relative 'handler'
-
 require_relative 'midi-devices'
-require_relative 'tracks'
 
-class Live
-  def self.default
-    @@default ||= Live.new
+class Daw
+  def self.register(daw_id, daw_class)
+    @@daws ||= {}
+    @@daws[daw_id] = daw_class
+  end
+
+  def self.daw_controller_for(daw_id)
+    @@daws[daw_id].new
   end
 
   def initialize
@@ -26,15 +28,19 @@ class Live
     end
 
     @midi_devices = MIDIDevices.new(@sequencer)
-    @tracks = Tracks.new(@midi_devices, logger: @sequencer.logger)
-    @handler = Handler.new(osc_server, osc_client, @tracks)
+
+    @handler = daw_initialize(midi_devices: @midi_devices, logger: @sequencer.logger, osc_server: osc_server, osc_client: osc_client)
 
     @handler.sync
 
     Thread.new { transport.start }
   end
 
-  attr_reader :clock, :tracks, :sequencer
+
+  def daw_initialize(midi_devices:, logger:, osc_server:, osc_client:)
+  end
+
+  attr_reader :clock, :sequencer
 
   def midi_sync(midi_device_name, manufacturer: nil, model: nil, name: nil)
     name ||= midi_device_name
@@ -48,13 +54,5 @@ class Live
 
   def sync
     @handler.sync
-  end
-
-  def track(name, all: false)
-    if all
-      @tracks.find_by_name(name)
-    else
-      @tracks.find_by_name(name).first
-    end
   end
 end

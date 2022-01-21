@@ -1,6 +1,6 @@
-# Musa Live Coding Environment for Ableton Live (Server)
+# Musa Live Coding Environment (Server for Ableton Live and Bitwig)
 
-Musa-DSL Live Coding Environment for Ableton Live (Server part)
+Musa-DSL Live Coding Environment for Ableton Live and Bitwig Studio (Server part)
 
 **TODO: complete README**
 
@@ -19,4 +19,4 @@ Musa-DSL Live Coding Environment for Ableton Live (Server part)
 
 ## License
 
-[MusaLCEforLive-Server](https://github.com/javier-sy/MusaLCEforLive-Server) Copyright (c) 2021 [Javier Sánchez Yeste](https://yeste.studio), licensed under GPL 3.0 License
+[MusaLCE-Server](https://github.com/javier-sy/MusaLCE-Server) Copyright (c) 2021-2022 [Javier Sánchez Yeste](https://yeste.studio), licensed under GPL 3.0 License
