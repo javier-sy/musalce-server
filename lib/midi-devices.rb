@@ -49,15 +49,21 @@ end
 
 class MIDIDevice
   def initialize(sequencer, low_level_device)
-    @unimidi_device = low_level_device
+    @low_level_device = low_level_device
     @voices = Musa::MIDIVoices::MIDIVoices.new(sequencer: sequencer, output: low_level_device, channels: 0..15, do_log: true)
   end
 
+  attr_reader :low_level_device
+
   def name
-    @unimidi_device.name
+    @low_level_device.name
   end
 
-  def ports
+  def channels
     @voices.voices
+  end
+
+  def to_s
+    @low_level_device.display_name
   end
 end

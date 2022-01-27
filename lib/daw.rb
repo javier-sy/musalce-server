@@ -29,18 +29,17 @@ class Daw
 
     @midi_devices = MIDIDevices.new(@sequencer)
 
-    @handler = daw_initialize(midi_devices: @midi_devices, logger: @sequencer.logger, osc_server: osc_server, osc_client: osc_client)
+    @tracks, @handler = daw_initialize(midi_devices: @midi_devices, clock: @clock, osc_server: osc_server, osc_client: osc_client, logger: @sequencer.logger)
 
     @handler.sync
 
     Thread.new { transport.start }
   end
 
+  protected def daw_initialize(midi_devices:, clock:, osc_server:, osc_client:, logger:); end
+  def track(name, all: false); end
 
-  def daw_initialize(midi_devices:, logger:, osc_server:, osc_client:)
-  end
-
-  attr_reader :clock, :sequencer
+  attr_reader :clock, :sequencer, :tracks
 
   def midi_sync(midi_device_name, manufacturer: nil, model: nil, name: nil)
     name ||= midi_device_name
