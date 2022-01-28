@@ -1,11 +1,12 @@
 Gem::Specification.new do |s|
   s.name        = 'MusaLCEServer'
-  s.version     = '0.3.0'
-  s.date        = '2022-01-21'
+  s.version     = '0.4.0'
+  s.date        = '2022-01-28'
   s.summary     = 'A Musa DSL live coding environment for Ableton Live 11 and Bitwig Studio 4'
   s.description = 'This package implements the Server part of the Musa DSL Live Coding Environment for Ableton Live and Bitwig Studio'
   s.authors     = ['Javier Sánchez Yeste']
   s.email       = 'javier.sy@gmail.com'
+  s.executables = ['musalce-server']
   s.files       = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features|samples)/}) }
   s.homepage    = 'https://github.com/javier-sy/MusaLCEServer'
   s.license     = 'GPL-3.0'
