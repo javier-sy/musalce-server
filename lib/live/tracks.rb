@@ -48,8 +48,8 @@ module Live
         device = @midi_devices.find(@current_input_routing)
 
         if device
-          port = /Ch\. (?<port>\d+)/.match(@current_input_sub_routing)&.[](:port)
-          effective_midi_voice = device.ports[port.to_i - 1] if port
+          channel = /Ch\. (?<channel>\d+)/.match(@current_input_sub_routing)&.[](:channel)
+          effective_midi_voice = device.channels[channel.to_i - 1] if channel
 
           @logger.info "track #{@id} assigned new input: device '#{device.name}' #{effective_midi_voice}"
         end

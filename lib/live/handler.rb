@@ -1,5 +1,7 @@
+require_relative '../daw'
+
 module Live
-  class Handler
+  class Handler < ::Handler
     def initialize(osc_server, osc_client, tracks, logger:)
       super()
 
@@ -9,6 +11,11 @@ module Live
       @tracks = tracks
 
       @logger = logger
+
+      @server.add_method '/hello' do |message|
+        @logger.info "Received /hello #{message.to_a}!"
+        sync
+      end
 
       @server.add_method '/musalce4live/tracks' do |message|
         @tracks.grant_registry_collection(message.to_a.each_slice(10).to_a)
@@ -40,11 +47,7 @@ module Live
     end
 
     def sync
-      send '/musalce4live/tracks'
-    end
-
-    private def send(message, *args)
-      @client.send OSC::Message.new(message, *args)
+      send_osc '/musalce4live/tracks'
     end
   end
 end

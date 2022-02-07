@@ -1,5 +1,7 @@
+require_relative '../daw'
+
 module Bitwig
-  class Handler
+  class Handler < ::Handler
     def initialize(osc_server, osc_client, controllers, logger:)
       super()
 
@@ -41,18 +43,7 @@ module Bitwig
 
     def sync
       @logger.info 'Asking sync'
-      send '/musalce4bitwig/controllers'
-    end
-
-    private def send(message, *args)
-      counter = 0
-      begin
-        @client.send OSC::Message.new(message, *args)
-      rescue Errno::ECONNREFUSED
-        counter += 1
-        @logger.warn "Errno::ECONNREFUSED when sending message #{message} #{args}. Retrying... (#{counter})"
-        retry if counter < 3
-      end
+      send_osc '/musalce4bitwig/controllers'
     end
   end
 end

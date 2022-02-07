@@ -55,3 +55,16 @@ class Daw
     @handler.sync
   end
 end
+
+class Handler
+  private def send_osc(message, *args)
+    counter = 0
+    begin
+      @client.send OSC::Message.new(message, *args)
+    rescue Errno::ECONNREFUSED
+      counter += 1
+      @logger.warn "Errno::ECONNREFUSED when sending message #{message} #{args}. Retrying... (#{counter})"
+      retry if counter < 3
+    end
+  end
+end
