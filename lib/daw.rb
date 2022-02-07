@@ -1,13 +1,15 @@
 require 'midi-communications'
 
-require_relative 'handler'
-
 require_relative 'midi-devices'
-require_relative 'tracks'
 
-class Live
-  def self.default
-    @@default ||= Live.new
+class Daw
+  def self.register(daw_id, daw_class)
+    @@daws ||= {}
+    @@daws[daw_id] = daw_class
+  end
+
+  def self.daw_controller_for(daw_id)
+    @@daws[daw_id].new
   end
 
   def initialize
@@ -26,15 +28,18 @@ class Live
     end
 
     @midi_devices = MIDIDevices.new(@sequencer)
-    @tracks = Tracks.new(@midi_devices, logger: @sequencer.logger)
-    @handler = Handler.new(osc_server, osc_client, @tracks)
+
+    @tracks, @handler = daw_initialize(midi_devices: @midi_devices, clock: @clock, osc_server: osc_server, osc_client: osc_client, logger: @sequencer.logger)
 
     @handler.sync
 
     Thread.new { transport.start }
   end
 
-  attr_reader :clock, :tracks, :sequencer
+  protected def daw_initialize(midi_devices:, clock:, osc_server:, osc_client:, logger:); end
+  def track(name, all: false); end
+
+  attr_reader :clock, :sequencer, :tracks
 
   def midi_sync(midi_device_name, manufacturer: nil, model: nil, name: nil)
     name ||= midi_device_name
@@ -49,12 +54,17 @@ class Live
   def sync
     @handler.sync
   end
+end
 
-  def track(name, all: false)
-    if all
-      @tracks.find_by_name(name)
-    else
-      @tracks.find_by_name(name).first
+class Handler
+  private def send_osc(message, *args)
+    counter = 0
+    begin
+      @client.send OSC::Message.new(message, *args)
+    rescue Errno::ECONNREFUSED
+      counter += 1
+      @logger.warn "Errno::ECONNREFUSED when sending message #{message} #{args}. Retrying... (#{counter})"
+      retry if counter < 3
     end
   end
 end
