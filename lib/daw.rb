@@ -67,4 +67,9 @@ class Handler
       retry if counter < 3
     end
   end
+
+  def reset
+    @logger.info 'Asking controller reset and reload'
+    send_osc '/reset'
+  end
 end
