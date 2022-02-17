@@ -50,7 +50,7 @@ def run(daw_name)
       @__main_thread.wakeup
     end
 
-    @__repl = Musa::REPL::REPL.new(binding)
+    @__repl = Musa::REPL::REPL.new(binding, highlight_exception: false)
   end
 
   sleep
