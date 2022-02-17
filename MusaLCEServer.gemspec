@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
     # "changelog_uri" => ""
   #}
 
-  s.add_runtime_dependency 'musa-dsl', '~> 0.26', '>= 0.26.3'
+  s.add_runtime_dependency 'musa-dsl', '~> 0.26', '>= 0.26.4'
 
   s.add_runtime_dependency 'midi-communications', '~> 0.5', '>= 0.5.1'
   s.add_runtime_dependency 'midi-events', '~> 0.5', '>= 0.5.0'
