@@ -31,13 +31,33 @@ class Daw
 
     @tracks, @handler = daw_initialize(midi_devices: @midi_devices, clock: @clock, osc_server: osc_server, osc_client: osc_client, logger: @sequencer.logger)
 
+    @handler.version
     @handler.sync
 
     Thread.new { transport.start }
   end
 
   protected def daw_initialize(midi_devices:, clock:, osc_server:, osc_client:, logger:); end
-  def track(name, all: false); end
+
+  def track(name, all: false)
+    raise NotImplementedError
+  end
+
+  def play
+    raise NotImplementedError
+  end
+
+  def stop
+    raise NotImplementedError
+  end
+
+  def continue
+    raise NotImplementedError
+  end
+
+  def goto(position)
+    raise NotImplementedError
+  end
 
   attr_reader :clock, :sequencer, :tracks
 
@@ -54,9 +74,23 @@ class Daw
   def sync
     @handler.sync
   end
+
+  def reload
+    @handler.reload
+  end
 end
 
 class Handler
+  def reload
+    @logger.info 'Asking controller reset and reload'
+    send_osc '/reload'
+  end
+
+  def version
+    @logger.info "Sending version #{VERSION}"
+    send_osc '/version', VERSION
+  end
+
   private def send_osc(message, *args)
     counter = 0
     begin
@@ -66,10 +100,5 @@ class Handler
       @logger.warn "Errno::ECONNREFUSED when sending message #{message} #{args}. Retrying... (#{counter})"
       retry if counter < 3
     end
-  end
-
-  def reset
-    @logger.info 'Asking controller reset and reload'
-    send_osc '/reset'
   end
 end

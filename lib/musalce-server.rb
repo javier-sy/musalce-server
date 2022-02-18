@@ -6,6 +6,8 @@ require 'osc-ruby/em_server'
 require_relative 'live/live'
 require_relative 'bitwig/bitwig'
 
+VERSION = "0.4.3".freeze
+
 def run(daw_name)
   raise ArgumentError, 'A daw must be specified. Options: \'bitwig\' or \'live\'' unless daw_name
   raise ArgumentError, "Incompatible DAW '#{daw_name}'. Options: 'bitwig' or 'live'" unless %w[bitwig live].include?(daw_name)
@@ -41,9 +43,8 @@ def run(daw_name)
     end
 
 
-    def reset
-      # TODO
-      puts 'reset: missing operation'
+    def reload
+      @__daw.reload
     end
 
     def shutdown

@@ -2,18 +2,20 @@ require_relative '../daw'
 
 module Bitwig
   class Handler < ::Handler
-    def initialize(osc_server, osc_client, controllers, logger:)
+    def initialize(osc_server, osc_client, controllers, sequencer, logger:)
       super()
 
       @server = osc_server
       @client = osc_client
 
       @controllers = controllers
+      @sequencer = sequencer
 
       @logger = logger
 
       @server.add_method '/hello' do |message|
         @logger.info "Received /hello #{message.to_a}!"
+        version
         sync
       end
 
@@ -43,7 +45,27 @@ module Bitwig
 
     def sync
       @logger.info 'Asking sync'
-      send_osc '/musalce4bitwig/controllers'
+      send_osc '/musalce4bitwig/sync'
+    end
+
+    def play
+      @logger.info 'Asking play'
+      send_osc '/musalce4bitwig/play'
+    end
+
+    def stop
+      @logger.info 'Asking stop'
+      send_osc '/musalce4bitwig/stop'
+    end
+
+    def continue
+      @logger.info 'Asking continue'
+      send_osc '/musalce4bitwig/continue'
+    end
+
+    def goto(position)
+      @logger.info "Asking goto #{position}"
+      send_osc '/musalce4bitwig/goto', OSC::OSCDouble64.new(((position - 1) * @sequencer.beats_per_bar).to_f)
     end
   end
 end

@@ -5,7 +5,7 @@ require_relative 'tracks'
 
 module Live
   class Live < Daw
-    def daw_initialize(midi_devices:, clock:, logger:, osc_server:, osc_client:)
+    def daw_initialize(midi_devices:, clock:, osc_server:, osc_client:, logger:)
       super
       tracks = Tracks.new(midi_devices, logger: logger)
       handler = Handler.new(osc_server, osc_client, tracks, logger: logger)
