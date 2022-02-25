@@ -18,7 +18,7 @@ class Daw
 
     Thread.new { osc_server.run }
 
-    @sequencer = Musa::Sequencer::Sequencer.new 4, 24, do_log: true
+    @sequencer = Musa::Sequencer::Sequencer.new 4, 24, dsl_context_class: MusaLCE_Context, do_log: true
 
     @clock = Musa::Clock::InputMidiClock.new do_log: true, logger: @sequencer.logger
     transport = Musa::Transport::Transport.new @clock, sequencer: @sequencer
@@ -36,6 +36,8 @@ class Daw
 
     Thread.new { transport.start }
   end
+
+  attr_reader :clock, :sequencer, :tracks
 
   protected def daw_initialize(midi_devices:, clock:, osc_server:, osc_client:, logger:); end
 
@@ -57,18 +59,6 @@ class Daw
 
   def goto(position)
     raise NotImplementedError
-  end
-
-  attr_reader :clock, :sequencer, :tracks
-
-  def midi_sync(midi_device_name, manufacturer: nil, model: nil, name: nil)
-    name ||= midi_device_name
-
-    @clock.input = MIDICommunications::Input.all.find do |_|
-      (_.manufacturer == manufacturer || manufacturer.nil?) &&
-        (_.model == model || model.nil?) &&
-        (_.name == name || name.nil?)
-    end
   end
 
   def sync
@@ -99,6 +89,20 @@ class Handler
       counter += 1
       @logger.warn "Errno::ECONNREFUSED when sending message #{message} #{args}. Retrying... (#{counter})"
       retry if counter < 3
+    end
+  end
+end
+
+class MusaLCE_Context < Musa::Sequencer::Sequencer::DSLContext
+  include Musa::REPL::CustomizableDSLContext
+
+  def binder
+    @__binder ||= binding
+  end
+
+  def import(*modules)
+    modules.each do |m|
+      self.class.include(m)
     end
   end
 end

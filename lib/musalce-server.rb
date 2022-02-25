@@ -6,7 +6,7 @@ require 'osc-ruby/em_server'
 require_relative 'live/live'
 require_relative 'bitwig/bitwig'
 
-VERSION = "0.4.3".freeze
+VERSION = "0.4.4".freeze
 
 def run(daw_name)
   raise ArgumentError, 'A daw must be specified. Options: \'bitwig\' or \'live\'' unless daw_name
@@ -16,9 +16,7 @@ def run(daw_name)
 
   daw = Daw.daw_controller_for(daw_name.to_sym)
 
-  daw.sequencer.with(main_thread: main_thread, daw: daw) do |main_thread:, daw:|
-    @keep_proc_context_on_with = true
-
+  daw.sequencer.with(main_thread: main_thread, daw: daw, keep_block_context: false) do |main_thread:, daw:|
     @__main_thread = main_thread
     @__daw = daw
 
@@ -42,7 +40,6 @@ def run(daw_name)
       @__daw
     end
 
-
     def reload
       @__daw.reload
     end
@@ -56,3 +53,4 @@ def run(daw_name)
 
   sleep
 end
+

@@ -22,6 +22,16 @@ module Live
         @tracks.find_by_name(name).first
       end
     end
+
+    def midi_sync(midi_device_name, manufacturer: nil, model: nil, name: nil)
+      name ||= midi_device_name
+
+      @clock.input = MIDICommunications::Input.all.find do |_|
+        (_.manufacturer == manufacturer || manufacturer.nil?) &&
+          (_.model == model || model.nil?) &&
+          (_.name == name || name.nil?)
+      end
+    end
   end
 
   Daw.register :live, Live
