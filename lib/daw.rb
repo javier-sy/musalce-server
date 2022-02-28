@@ -62,6 +62,10 @@ module MusaLCEServer
       raise NotImplementedError
     end
 
+    def record
+      raise NotImplementedError
+    end
+
     def sync
       @handler.sync
     end

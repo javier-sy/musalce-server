@@ -40,6 +40,10 @@ module MusaLCEServer
       def goto(position)
         @handler.goto(position)
       end
+
+      def record
+        @handler.record
+      end
     end
 
     Daw.register :bitwig, Bitwig

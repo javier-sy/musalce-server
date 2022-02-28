@@ -47,6 +47,7 @@ module MusaLCEServer
       end
     end
   end
+  
   class MIDIDevice
     def initialize(sequencer, low_level_device)
       @low_level_device = low_level_device

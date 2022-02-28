@@ -68,6 +68,11 @@ module MusaLCEServer
         @logger.info "Asking goto #{position}"
         send_osc '/musalce4bitwig/goto', OSC::OSCDouble64.new(((position - 1) * @sequencer.beats_per_bar).to_f)
       end
+
+      def record
+        @logger.info 'Asking record'
+        send_osc '/musalce4bitwig/record'
+      end
     end
   end
 end
