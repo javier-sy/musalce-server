@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'MusaLCEServer'
-  s.version     = '0.4.5'
+  s.version     = '0.4.6.wip'
   s.date        = '2022-02-25'
   s.summary     = 'A Musa DSL live coding environment for Ableton Live 11 and Bitwig Studio 4'
   s.description = 'This package implements the Server part of the Musa DSL Live Coding Environment for Ableton Live and Bitwig Studio'
@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
     # "changelog_uri" => ""
   #}
 
-  s.add_runtime_dependency 'musa-dsl', '~> 0.26', '>= 0.26.5'
+  s.add_runtime_dependency 'musa-dsl', '~> 0.26', '>= 0.26.6.wip'
 
   s.add_runtime_dependency 'midi-communications', '~> 0.5', '>= 0.5.1'
   s.add_runtime_dependency 'midi-events', '~> 0.5', '>= 0.5.0'
