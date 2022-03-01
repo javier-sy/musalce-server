@@ -46,25 +46,17 @@ module MusaLCEServer
       raise NotImplementedError
     end
 
-    def play
-      raise NotImplementedError
-    end
+    def play; end
 
     def stop
-      raise NotImplementedError
+      panic
     end
 
-    def continue
-      raise NotImplementedError
-    end
+    def continue; end
 
-    def goto(position)
-      raise NotImplementedError
-    end
+    def goto(position); end
 
-    def record
-      raise NotImplementedError
-    end
+    def record; end
 
     def sync
       @handler.sync

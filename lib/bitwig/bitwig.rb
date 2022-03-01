@@ -27,22 +27,27 @@ module MusaLCEServer
 
       def play
         @handler.play
+        super
       end
 
       def stop
         @handler.stop
+        super
       end
 
       def continue
         @handler.continue
+        super
       end
 
       def goto(position)
         @handler.goto(position)
+        super
       end
 
       def record
         @handler.record
+        super
       end
     end
 
