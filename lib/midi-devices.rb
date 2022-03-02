@@ -48,7 +48,7 @@ module MusaLCEServer
     end
 
     def panic
-      @low_level_devices.each(&:panic)
+      @low_level_devices.each_value(&:panic)
     end
   end
   

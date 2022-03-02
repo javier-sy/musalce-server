@@ -49,7 +49,7 @@ module MusaLCEServer
     def play; end
 
     def stop
-      panic
+      @midi_devices.panic
     end
 
     def continue; end
