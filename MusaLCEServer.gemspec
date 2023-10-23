@@ -2,7 +2,7 @@ Gem::Specification.new do |s|
   s.name        = 'MusaLCEServer'
   s.version     = '0.4.7'
   s.date        = '2023-10-23'
-  s.summary     = 'A Musa DSL live coding environment for Ableton Live 11 and Bitwig Studio 4'
+  s.summary     = 'A Musa DSL live coding environment for Ableton Live 11 and Bitwig Studio 5'
   s.description = 'This package implements the Server part of the Musa DSL Live Coding Environment for Ableton Live and Bitwig Studio'
   s.authors     = ['Javier Sánchez Yeste']
   s.email       = 'javier.sy@gmail.com'
