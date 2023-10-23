@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name        = 'MusaLCEServer'
+  s.name        = 'musalce-server'
   s.version     = '0.4.7'
   s.date        = '2023-10-23'
   s.summary     = 'A Musa DSL live coding environment for Ableton Live 11 and Bitwig Studio 5'
