@@ -19,4 +19,4 @@ Musa-DSL Live Coding Environment for Ableton Live and Bitwig Studio (Server part
 
 ## License
 
-[MusaLCE-Server](https://github.com/javier-sy/MusaLCE-Server) Copyright (c) 2021-2022 [Javier Sánchez Yeste](https://yeste.studio), licensed under GPL 3.0 License
+[MusaLCE-Server](https://github.com/javier-sy/MusaLCE-Server) Copyright (c) 2021-2023 [Javier Sánchez Yeste](https://yeste.studio), licensed under GPL 3.0 License
