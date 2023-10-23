@@ -7,7 +7,7 @@ require_relative 'live/live'
 require_relative 'bitwig/bitwig'
 
 module MusaLCEServer
-  VERSION = '0.4.6.wip'.freeze
+  VERSION = '0.4.7'.freeze
 
   def self.run(daw_name)
     raise ArgumentError, 'A daw must be specified. Options: \'bitwig\' or \'live\'' unless daw_name
