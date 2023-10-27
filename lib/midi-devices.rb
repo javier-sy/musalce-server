@@ -46,10 +46,6 @@ module MusaLCEServer
         @low_level_devices.values.each
       end
     end
-
-    def panic
-      @low_level_devices.each_value(&:panic)
-    end
   end
   
   class MIDIDevice
@@ -66,10 +62,6 @@ module MusaLCEServer
 
     def channels
       @voices.voices
-    end
-
-    def panic
-      @voices.panic
     end
 
     def to_s
