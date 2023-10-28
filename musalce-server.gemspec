@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.email       = 'javier.sy@gmail.com'
   s.executables = ['musalce-server']
   s.files       = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features|samples)/}) }
-  s.homepage    = 'https://github.com/javier-sy/MusaLCEServer'
+  s.homepage    = 'https://github.com/javier-sy/musalce-server'
   s.license     = 'GPL-3.0'
 
   s.required_ruby_version = '~> 2.7'
