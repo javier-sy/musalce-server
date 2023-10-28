@@ -56,6 +56,12 @@ module MusaLCEServer
 
     def record; end
 
+    def panic!
+      @tracks.each do |track|
+        track.out.all_notes_off
+      end
+    end
+
     def sync
       @handler.sync
     end
@@ -74,6 +80,10 @@ module MusaLCEServer
     def version
       @logger.info "Sending version #{VERSION}"
       send_osc '/version', VERSION
+    end
+
+    def panic!
+      raise NotImplementedError
     end
 
     private def send_osc(message, *args)

@@ -73,6 +73,10 @@ module MusaLCEServer
         @logger.info 'Asking record'
         send_osc '/musalce4bitwig/record'
       end
+
+      def panic!
+        @controllers.tracks.each(:panic!)
+      end
     end
   end
 end

@@ -60,6 +60,10 @@ module MusaLCEServer
       @low_level_device.name
     end
 
+    def panic!
+      @voices.panic reset: true
+    end
+
     def channels
       @voices.voices
     end
