@@ -3,12 +3,11 @@ require 'musa-dsl'
 require 'osc-ruby'
 require 'osc-ruby/em_server'
 
+require_relative 'version'
 require_relative 'live/live'
 require_relative 'bitwig/bitwig'
 
 module MusaLCEServer
-  VERSION = '0.4.10'.freeze
-
   def self.run(daw_name)
     raise ArgumentError, 'A daw must be specified. Options: \'bitwig\' or \'live\'' unless daw_name
     raise ArgumentError, "Incompatible DAW '#{daw_name}'. Options: 'bitwig' or 'live'" unless %w[bitwig live].include?(daw_name)
