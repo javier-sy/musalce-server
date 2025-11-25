@@ -2,7 +2,19 @@ require_relative '../daw'
 
 module MusaLCEServer
   module Live
+    # OSC message handler for Ableton Live.
+    #
+    # Handles communication with the MusaLCE for Live MIDI Remote Script,
+    # processing incoming OSC messages for track registration and routing.
+    #
+    # @api private
     class Handler < ::MusaLCEServer::Handler
+      # Creates a new Live handler.
+      #
+      # @param osc_server [OSC::EMServer] the OSC server for receiving messages
+      # @param osc_client [OSC::Client] the OSC client for sending messages
+      # @param tracks [Tracks] the tracks manager
+      # @param logger [Logger] the logger
       def initialize(osc_server, osc_client, tracks, logger:)
         super()
 
@@ -47,6 +59,8 @@ module MusaLCEServer
         end
       end
 
+      # Requests track information from Live.
+      # @return [void]
       def sync
         send_osc '/musalce4live/tracks'
       end

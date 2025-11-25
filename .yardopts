@@ -1,0 +1,6 @@
+--markup markdown
+--title "MusaLCE Server API"
+--readme README.md
+--no-private
+--embed-mixins
+lib/**/*.rb
