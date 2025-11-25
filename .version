@@ -1,0 +1,6 @@
+# Configuración de versión para musalce-server
+GEM_NAME="musalce-server"
+MODULE_NAME="MusaLCEServer"
+VERSION_FILE="lib/version.rb"
+GEMSPEC_FILE="musalce-server.gemspec"
+TEST_COMMAND="bundle exec rake test"
