@@ -28,10 +28,12 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'midi-parser', '~> 0.5'
 
   s.add_runtime_dependency 'osc-ruby', '~> 1.1', '>= 1.1.5'
+  # EventMachine is an *optional* dep of osc-ruby (only needed when
+  # using OSC::EMServer, which we do in daw.rb to receive OSC from
+  # the DAW extension). osc-ruby doesn't declare it, so we must.
+  s.add_runtime_dependency 'eventmachine', '~> 1.2'
 
-  s.add_development_dependency 'minitest', '~> 5', '>= 5.14.4'
-  s.add_development_dependency 'rake', '~> 13', '>= 13.0.6'
-  s.add_development_dependency 'shoulda-context', '~> 2', '>= 2.0.0'
+  s.add_development_dependency 'rspec', '~> 3'
 
   s.add_development_dependency 'yard', '~> 0.9'
   s.add_development_dependency 'redcarpet', '~> 3.6'

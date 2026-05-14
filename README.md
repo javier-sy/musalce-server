@@ -303,4 +303,4 @@ Then open http://localhost:8808 in your browser.
 
 ## License
 
-[MusaLCE Server](https://github.com/javier-sy/musalce-server) Copyright (c) 2021-2025 [Javier Sánchez Yeste](https://yeste.studio), licensed under GPL 3.0 License
+[MusaLCE Server](https://github.com/javier-sy/musalce-server) Copyright (c) 2021-2026 [Javier Sánchez Yeste](https://yeste.studio), licensed under GPL 3.0 License
