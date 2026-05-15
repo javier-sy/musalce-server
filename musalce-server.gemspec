@@ -3,7 +3,7 @@ require_relative 'lib/version'
 Gem::Specification.new do |s|
   s.name        = 'musalce-server'
   s.version     = MusaLCEServer::VERSION
-  s.date        = '2025-11-25'
+  s.date        = '2026-05-15'
   s.summary     = 'A Musa DSL live coding environment for Ableton Live 11 and Bitwig Studio 5'
   s.description = 'This package implements the Server part of the Musa DSL Live Coding Environment for Ableton Live and Bitwig Studio'
   s.authors     = ['Javier Sánchez Yeste']

@@ -3,11 +3,13 @@ require 'midi-communications'
 require_relative 'midi-devices'
 
 module MusaLCEServer
-  # @return [EventBridge, nil] active event bridge, set during {Daw}
-  #   initialization. Used by {MusaLCE_Context#status} to send event
-  #   state OSC messages outbound to the DAW extension.
+  # @return [Surface, nil] active control surface, set during {Daw}
+  #   initialization. Exposed to the DSL as +surface+ in
+  #   {MusaLCE_Context}; mutating its controls (e.g.
+  #   +surface[:foo].enabled = true+) emits OSC state outbound to
+  #   the DAW extension and on to Pulso Bridge / Stream Deck.
   class << self
-    attr_accessor :event_bridge
+    attr_accessor :surface
   end
 
   # Base class for DAW (Digital Audio Workstation) controllers.
@@ -71,40 +73,34 @@ module MusaLCEServer
 
       @midi_devices = MIDIDevices.new(@sequencer)
 
-      MusaLCEServer.event_bridge = EventBridge.new(osc_client, logger: @sequencer.logger)
-
-      # /musalce/event/trigger arrives on the OSC server thread
-      # (EventMachine reactor). To let user handlers safely use any
-      # sequencer DSL method (+play+, +at+, +wait+, …), the trigger
-      # is enqueued here and drained from the tick thread via the
-      # +before_tick+ callback below — adding at most one tick of
-      # latency (≈20 ms at 120 BPM / 24 PPQN).
-      osc_server.add_method '/musalce/event/trigger' do |message|
-        args = message.to_a
-        @sequencer.logger.info "Received /musalce/event/trigger #{args}"
-        event = args[0]
-        payload = (args[1] || '').to_s
-        if event.nil? || event.to_s.empty?
-          @sequencer.logger.warn '/musalce/event/trigger received without event name'
-        else
-          MusaLCEServer.event_bridge.enqueue_trigger(event, payload)
-        end
-      end
+      # Build the surface side: inbound +/musalce/surface/*+
+      # messages land on the EM reactor thread, are enqueued by the
+      # bridge, then drained on the sequencer tick thread via
+      # +before_tick+ — guaranteeing that inventory mutations and
+      # user-defined trigger handlers can safely use any DSL method
+      # (+play+, +at+, +launch+, …). Drainer latency is one tick
+      # (≈20 ms at 120 BPM / 24 PPQN).
+      surface_bridge = SurfaceBridge.new(osc_client, @sequencer, logger: @sequencer.logger)
+      @surface = Surface.new(bridge: surface_bridge, logger: @sequencer.logger)
+      surface_bridge.surface = @surface
+      surface_bridge.register_inbound(osc_server)
+      MusaLCEServer.surface = @surface
 
       @sequencer.before_tick do |_position|
-        MusaLCEServer.event_bridge.drain_triggers do |event, payload|
-          begin
-            @sequencer.launch(event.to_sym, payload)
-          rescue StandardError => e
-            @sequencer.logger.error "Error launching event #{event.inspect}: #{e.class}: #{e.message}"
-          end
-        end
+        surface_bridge.drain
       end
 
       @tracks, @handler = daw_initialize(midi_devices: @midi_devices, clock: @clock, osc_server: osc_server, osc_client: osc_client, logger: @sequencer.logger)
 
       @handler.version
       @handler.sync
+
+      # Ask Pulso Bridge (through the DAW extension) to dump its
+      # current inventory. The reply re-establishes
+      # +@surface.controls+ from scratch and triggers a full state
+      # re-emit. Sent after +@handler.sync+ so the DAW extension is
+      # known to be alive.
+      surface_bridge.request_sync
 
       Thread.new { transport.start }
     end
@@ -115,7 +111,9 @@ module MusaLCEServer
     #   @return [Musa::Sequencer::Sequencer] the Musa-DSL sequencer instance
     # @!attribute [r] tracks
     #   @return [Object] the DAW-specific tracks collection
-    attr_reader :clock, :sequencer, :tracks
+    # @!attribute [r] surface
+    #   @return [Surface] the control surface (Stream Deck etc.)
+    attr_reader :clock, :sequencer, :tracks, :surface
 
     # DAW-specific initialization hook.
     #
@@ -271,32 +269,29 @@ module MusaLCEServer
       end
     end
 
-    # Publishes event state to the configured DAW extension (and
-    # from there to surfaces such as Stream Deck buttons via Pulso
-    # Bridge).
+    # @return [Surface] the active control surface (Stream Deck and
+    #   similar hardware reached via Pulso Bridge).
     #
-    # Pairs with the standard sequencer +on+ command: handlers
-    # registered with +on :foo do |payload| ... end+ are triggered
-    # both by internal +launch+ calls and by external OSC triggers
-    # arriving at +/musalce/event/trigger+.
+    # The surface holds typed controls keyed by event id. Controls
+    # appear in the inventory once Pulso Bridge advertises them
+    # over OSC; before that, +surface[:id]+ returns +nil+.
     #
-    # @param event [Symbol, String] event name (same identifier used
-    #   with +on+ and the Stream Deck button +Event+ property)
-    # @param enabled [Boolean, Symbol] one of +true+, +false+,
-    #   +:inactive+
-    # @param message [String, nil] optional text to render on the
-    #   button (up to two lines, truncated if longer)
-    # @return [void]
-    #
-    # @example
+    # @example writing state from a handler
     #   on :launch_chorus do |payload|
     #     launch :chorus_section
-    #     status :launch_chorus, enabled: true, message: "Chorus on"
+    #     surface[:launch_chorus]&.tap do |c|
+    #       c.message = 'Chorus on'
+    #       c.on!
+    #     end
     #   end
-    def status(event, enabled:, message: nil)
-      bridge = MusaLCEServer.event_bridge
-      raise 'No EventBridge available (DAW not initialized)' unless bridge
-      bridge.send_state(event: event, enabled: enabled, message: message)
+    #
+    # @example reading state to toggle
+    #   on :master_mute do
+    #     surface[:master_mute]&.toggle!
+    #   end
+    def surface
+      MusaLCEServer.surface or
+        raise 'No Surface available (DAW not initialized)'
     end
   end
 end

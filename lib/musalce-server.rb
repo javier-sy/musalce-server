@@ -4,7 +4,8 @@ require 'osc-ruby'
 require 'osc-ruby/em_server'
 
 require_relative 'version'
-require_relative 'event-bridge'
+require_relative 'surface'
+require_relative 'surface-bridge'
 require_relative 'live/live'
 require_relative 'bitwig/bitwig'
 
