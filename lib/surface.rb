@@ -6,9 +6,11 @@ module MusaLCEServer
   #
   # The surface is **the abstraction shared with hardware** but
   # surface-agnostic: it knows only about named controls with a type
-  # and dynamic state. Each control is referenced by a Symbol id
-  # (e.g. +:launch_chorus+) which doubles as the event name used with
-  # the sequencer's +on+/+launch+ mechanism when the control fires.
+  # and dynamic state. Each control is keyed by its **event name** — a
+  # Symbol (e.g. +:launch_chorus+) that doubles as the identifier used
+  # with the sequencer's +on+/+launch+ mechanism when the control
+  # fires. In MusaLCE the unit of interaction is always the *event*;
+  # the surface is the physical face of one or more events.
   #
   # Ownership of the two data axes:
   #
@@ -17,19 +19,19 @@ module MusaLCEServer
   #   trusts what it receives (Pulso validates type consistency
   #   across physical instances).
   # - **State** (message, enabled, value, …) is owned by the server:
-  #   the score writes to +surface[:id]+ and changes propagate
-  #   outbound on +/musalce/surface/state+.
+  #   the score writes to +surface[:event]+ and changes propagate
+  #   outbound on +/musalce/surface/state/<prop>+.
   #
-  # Inventory may arrive as a full dump (between
-  # +inventory/begin+ and +inventory/end+, in which case ids absent
-  # from the dump are purged at end) or as runtime deltas
-  # (+inventory/add+ / +inventory/remove+). Re-adding an id with the
-  # same type preserves its state; a type change replaces the
-  # control and resets state.
+  # Inventory may arrive as a full dump (between +inventory/begin+
+  # and +inventory/end+, in which case events absent from the dump
+  # are purged at end) or as runtime deltas (+inventory/add+ /
+  # +inventory/remove+). Re-adding an event with the same type
+  # preserves its state; a type change replaces the control and
+  # resets state.
   #
   # All mutating methods are expected to run on the sequencer tick
   # thread (inbound OSC messages are routed there by
-  # {SurfaceBridge}). Score code writing +surface[:id].xxx +=+ ...
+  # {SurfaceBridge}). Score code writing +surface[:event].xxx =+ ...
   # also runs on that thread (inside +at+/+every+/+on+ blocks),
   # which keeps access serial without explicit locking.
   class Surface
@@ -39,93 +41,93 @@ module MusaLCEServer
       @bridge = bridge
       @logger = logger
       @controls = {}
-      @pending_ids = nil
+      @pending_events = nil
     end
 
-    # Returns the control for the given id, or +nil+ if unknown.
+    # Returns the control for the given event, or +nil+ if unknown.
     #
     # A control becomes known once its inventory entry has been
     # received from the surface. Score code that runs before that
     # should use safe navigation (+surface[:foo]&.enabled = true+)
     # or guard with {#known?}.
     #
-    # @param id [Symbol, String]
+    # @param event [Symbol, String]
     # @return [Control, nil]
-    def [](id)
-      @controls[id.to_sym]
+    def [](event)
+      @controls[event.to_sym]
     end
 
-    # @return [Array<Symbol>] all known control ids
-    def ids
+    # @return [Array<Symbol>] all known control events
+    def events
       @controls.keys
     end
 
-    # @param id [Symbol, String]
-    # @return [Boolean] whether a control with this id is in the inventory
-    def known?(id)
-      @controls.key?(id.to_sym)
+    # @param event [Symbol, String]
+    # @return [Boolean] whether a control with this event is in the inventory
+    def known?(event)
+      @controls.key?(event.to_sym)
     end
 
-    # Begins a full inventory dump. Ids that are not re-added before
+    # Begins a full inventory dump. Events that are not re-added before
     # {#end_inventory} are purged.
     # @return [void]
     # @api private
     def begin_inventory
-      @pending_ids = Set.new
+      @pending_events = Set.new
     end
 
     # Registers (or refreshes) a control in the inventory.
     #
-    # If a control with the same id and type already exists, its
+    # If a control with the same event and type already exists, its
     # state is preserved. If the type differs, the existing control
     # is replaced with a fresh instance (state reset).
     #
-    # @param id [Symbol, String]
+    # @param event [Symbol, String]
     # @param type [Symbol, String] one of +:toggle+, +:trigger+, +:encoder+
     # @return [Control] the (possibly new) control
     # @api private
-    def add_control(id, type)
-      id = id.to_sym
+    def add_control(event, type)
+      event = event.to_sym
       type = type.to_sym
-      existing = @controls[id]
+      existing = @controls[event]
 
       if existing && existing.class.type_name == type
         ctrl = existing
       else
-        ctrl = Control.create(type, id: id, surface: self)
-        @controls[id] = ctrl
-        @logger.info "Surface: added control #{id} (#{type})"
+        ctrl = Control.create(type, event: event, surface: self)
+        @controls[event] = ctrl
+        @logger.info "Surface: added control #{event} (#{type})"
       end
 
-      @pending_ids << id if @pending_ids
+      @pending_events << event if @pending_events
       ctrl
     end
 
     # Removes a control from the inventory and drops its state.
-    # @param id [Symbol, String]
+    # @param event [Symbol, String]
     # @return [Control, nil] the removed control, or nil if unknown
     # @api private
-    def remove_control(id)
-      id = id.to_sym
-      removed = @controls.delete(id)
-      @logger.info "Surface: removed control #{id}" if removed
+    def remove_control(event)
+      event = event.to_sym
+      removed = @controls.delete(event)
+      @logger.info "Surface: removed control #{event}" if removed
       removed
     end
 
-    # Ends a full inventory dump. Any id present before the dump but
-    # not re-added between {#begin_inventory} and this call is
+    # Ends a full inventory dump. Any event present before the dump
+    # but not re-added between {#begin_inventory} and this call is
     # purged. Re-emits all state so the surface re-syncs after the
     # round-trip.
     # @return [void]
     # @api private
     def end_inventory
-      if @pending_ids
-        stale = @controls.keys - @pending_ids.to_a
-        stale.each do |id|
-          @controls.delete(id)
-          @logger.info "Surface: purged stale control #{id}"
+      if @pending_events
+        stale = @controls.keys - @pending_events.to_a
+        stale.each do |event|
+          @controls.delete(event)
+          @logger.info "Surface: purged stale control #{event}"
         end
-        @pending_ids = nil
+        @pending_events = nil
       end
       emit_full_state
     end
@@ -141,13 +143,13 @@ module MusaLCEServer
 
     # Called by a Control when one of its properties changes; relays
     # to the bridge.
-    # @param id [Symbol]
+    # @param event [Symbol]
     # @param prop [Symbol]
     # @param value [Array<Object>] OSC-serializable values
     # @return [void]
     # @api private
-    def emit_state(id, prop, *value)
-      @bridge.send_state(id: id, prop: prop, value: value)
+    def emit_state(event, prop, *value)
+      @bridge.send_state(event: event, prop: prop, value: value)
     end
   end
 
@@ -157,18 +159,19 @@ module MusaLCEServer
   # received from the surface, expose typed state accessors, and
   # implement {#emit_all_state} to push their current state outbound.
   #
-  # Setting a property emits exactly one OSC +/musalce/surface/state+
-  # message; the setter is therefore the canonical mutation point.
-  # Direct manipulation of instance variables bypasses emission.
+  # Setting a property emits exactly one OSC
+  # +/musalce/surface/state/<prop>+ message; the setter is therefore
+  # the canonical mutation point. Direct manipulation of instance
+  # variables bypasses emission.
   class Control
-    # @return [Symbol] the control id
-    attr_reader :id
+    # @return [Symbol] the event name this control is bound to
+    attr_reader :event
 
     # @return [String, nil] the displayable message, +nil+ if unset
     attr_reader :message
 
-    def initialize(id:, surface:)
-      @id = id
+    def initialize(event:, surface:)
+      @event = event
       @surface = surface
       @message = nil
     end
@@ -180,6 +183,39 @@ module MusaLCEServer
     def message=(value)
       @message = value
       emit(:message, value.to_s)
+    end
+
+    # Sets multiple attributes in a single call. Each key must name a
+    # writable attribute of the receiver's type; unknown keys raise
+    # +ArgumentError+ so a typo can't silently no-op.
+    #
+    # Order of assignment follows the kwargs hash insertion order
+    # (Ruby >= 1.9 guarantees insertion-ordered iteration). Each
+    # assignment goes through the regular setter, so each property
+    # emits its own +/musalce/surface/state/<prop>+ message. This is
+    # intentional: the wire protocol is per-property, and the plugin
+    # merges deltas into the rendered state, so two adjacent
+    # +/state/<prop>+ messages render exactly the same as a single
+    # batched one would.
+    #
+    # @example Toggle
+    #   surface[:launch_chorus].set(enabled: true, message: "Chorus on")
+    # @example Encoder
+    #   surface[:cutoff].set(range: 0..127, value: 64, message: "Cutoff")
+    #
+    # @param attrs [Hash{Symbol => Object}]
+    # @raise [ArgumentError] if a key doesn't correspond to a writer
+    # @return [self] for chaining
+    def set(**attrs)
+      attrs.each do |key, value|
+        writer = :"#{key}="
+        unless respond_to?(writer)
+          raise ArgumentError,
+                "#{self.class.type_name} control has no '#{key}' attribute"
+        end
+        public_send(writer, value)
+      end
+      self
     end
 
     # Re-emits every state property of this control. Called by the
@@ -210,7 +246,7 @@ module MusaLCEServer
     end
 
     protected def emit(prop, *value)
-      @surface.emit_state(@id, prop, *value)
+      @surface.emit_state(@event, prop, *value)
     end
   end
 

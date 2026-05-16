@@ -14,8 +14,8 @@ class FakeBridge
     @sent = []
   end
 
-  def send_state(id:, prop:, value:)
-    @sent << { id: id, prop: prop, value: value }
+  def send_state(event:, prop:, value:)
+    @sent << { event: event, prop: prop, value: value }
   end
 
   def clear
@@ -29,7 +29,7 @@ RSpec.describe MusaLCEServer::Surface do
   let(:surface) { described_class.new(bridge: bridge, logger: logger) }
 
   describe 'lookup' do
-    it 'returns nil for unknown ids' do
+    it 'returns nil for unknown events' do
       expect(surface[:nope]).to be_nil
       expect(surface).not_to be_known(:nope)
     end
@@ -46,6 +46,7 @@ RSpec.describe MusaLCEServer::Surface do
     it 'creates a Toggle of the right class' do
       surface.add_control(:foo, :toggle)
       expect(surface[:foo]).to be_a(MusaLCEServer::Toggle)
+      expect(surface[:foo].event).to eq(:foo)
     end
 
     it 'creates a Trigger of the right class' do
@@ -58,7 +59,7 @@ RSpec.describe MusaLCEServer::Surface do
       expect(surface[:enc]).to be_a(MusaLCEServer::Encoder)
     end
 
-    it 'preserves state when re-adding the same id with the same type' do
+    it 'preserves state when re-adding the same event with the same type' do
       surface.add_control(:foo, :toggle)
       surface[:foo].on!
       original = surface[:foo]
@@ -69,7 +70,7 @@ RSpec.describe MusaLCEServer::Surface do
       expect(surface[:foo].enabled).to eq(true)
     end
 
-    it 'replaces and resets state when re-adding the same id with a different type' do
+    it 'replaces and resets state when re-adding the same event with a different type' do
       surface.add_control(:foo, :toggle)
       surface[:foo].on!
       original = surface[:foo]
@@ -105,7 +106,7 @@ RSpec.describe MusaLCEServer::Surface do
       bridge.clear
     end
 
-    it 'purges ids absent from the dump and emits state for survivors' do
+    it 'purges events absent from the dump and emits state for survivors' do
       surface.begin_inventory
       surface.add_control(:keep_same_type, :toggle)
       surface.add_control(:change_type,    :encoder)
@@ -120,8 +121,8 @@ RSpec.describe MusaLCEServer::Surface do
 
       # A bare Trigger has no state to emit (message defaults to
       # nil), so :fresh_one is intentionally absent from emissions.
-      emitted_ids = bridge.sent.map { |m| m[:id] }.uniq
-      expect(emitted_ids).to contain_exactly(:keep_same_type, :change_type)
+      emitted_events = bridge.sent.map { |m| m[:event] }.uniq
+      expect(emitted_events).to contain_exactly(:keep_same_type, :change_type)
     end
   end
 end
@@ -142,7 +143,7 @@ RSpec.describe MusaLCEServer::Toggle do
 
   it 'emits one state message on enabled=' do
     toggle.enabled = true
-    expect(bridge.sent).to eq([{ id: :foo, prop: :enabled, value: ['true'] }])
+    expect(bridge.sent).to eq([{ event: :foo, prop: :enabled, value: ['true'] }])
   end
 
   it 'normalizes string/symbol equivalents' do
@@ -192,6 +193,25 @@ RSpec.describe MusaLCEServer::Toggle do
     props = bridge.sent.map { |m| m[:prop] }
     expect(props).to include(:message, :enabled)
   end
+
+  describe '#set' do
+    it 'sets multiple attributes in one call and emits one message per property' do
+      toggle.set(enabled: true, message: 'Chorus on')
+
+      expect(toggle.enabled).to eq(true)
+      expect(toggle.message).to eq('Chorus on')
+      props = bridge.sent.map { |m| m[:prop] }
+      expect(props).to contain_exactly(:enabled, :message)
+    end
+
+    it 'returns self for chaining' do
+      expect(toggle.set(enabled: true)).to equal(toggle)
+    end
+
+    it 'raises ArgumentError on unknown attributes' do
+      expect { toggle.set(value: 64) }.to raise_error(ArgumentError, /toggle.*value/)
+    end
+  end
 end
 
 RSpec.describe MusaLCEServer::Encoder do
@@ -228,5 +248,32 @@ RSpec.describe MusaLCEServer::Encoder do
 
   it 'rejects non-Range arguments to range=' do
     expect { encoder.range = [0, 127] }.to raise_error(ArgumentError)
+  end
+
+  describe '#set' do
+    it 'sets range, value and message in one call' do
+      encoder.set(range: 0..200, value: 150, message: 'Cutoff')
+      expect(encoder.range).to eq(0..200)
+      expect(encoder.value).to eq(150)
+      expect(encoder.message).to eq('Cutoff')
+    end
+  end
+end
+
+RSpec.describe MusaLCEServer::Trigger do
+  let(:bridge) { FakeBridge.new }
+  let(:logger) { instance_double(Logger, info: nil, warn: nil, error: nil) }
+  let(:surface) { MusaLCEServer::Surface.new(bridge: bridge, logger: logger) }
+  let(:trigger) { surface.add_control(:panic, :trigger) }
+
+  before { trigger; bridge.clear }
+
+  it 'accepts set with message only' do
+    trigger.set(message: 'Sent')
+    expect(trigger.message).to eq('Sent')
+  end
+
+  it 'rejects set with enabled (toggle-only attribute)' do
+    expect { trigger.set(enabled: true) }.to raise_error(ArgumentError, /trigger.*enabled/)
   end
 end

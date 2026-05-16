@@ -52,19 +52,19 @@ module MusaLCEServer
     #
     # One address per property so the Java relay and the surface
     # plugin can dispatch on a fixed argument layout per address
-    # (id + N typed args). All values are serialized to strings on
-    # the wire — receivers parse them based on the address. Keeps
-    # the Java forwarder generic without inspecting typetags.
+    # (event + N typed args). All values are serialized to strings
+    # on the wire — receivers parse them based on the address.
+    # Keeps the Java forwarder generic without inspecting typetags.
     #
-    # @param id [Symbol] the control id
+    # @param event [Symbol] the event the control is bound to
     # @param prop [Symbol] the property name (+:message+,
     #   +:enabled+, +:value+, +:range+, …)
     # @param value [Array<Object>] one or more values for the
     #   property (e.g. one for +:message+, two for +:range+)
     # @return [void]
-    def send_state(id:, prop:, value:)
+    def send_state(event:, prop:, value:)
       args = value.map { |v| serialize_arg(v) }
-      send_osc "/musalce/surface/state/#{prop}", id.to_s, *args
+      send_osc "/musalce/surface/state/#{prop}", event.to_s, *args
     end
 
     # Registers all inbound +/musalce/surface/*+ handlers on the
@@ -122,27 +122,27 @@ module MusaLCEServer
       when :inventory_begin
         @surface.begin_inventory
       when :inventory_add
-        id, type = msg[1], msg[2]
-        if id.nil? || type.nil?
-          @logger.warn "/musalce/surface/inventory/add missing id or type (#{msg.inspect})"
+        event, type = msg[1], msg[2]
+        if event.nil? || type.nil?
+          @logger.warn "/musalce/surface/inventory/add missing event or type (#{msg.inspect})"
         else
-          @surface.add_control(id, type)
+          @surface.add_control(event, type)
         end
       when :inventory_remove
-        id = msg[1]
-        @surface.remove_control(id) unless id.nil?
+        event = msg[1]
+        @surface.remove_control(event) unless event.nil?
       when :inventory_end
         @surface.end_inventory
       when :state_request
         @surface.emit_full_state
       when :trigger
-        id, payload = msg[1], msg[2]
-        if id.nil? || id.to_s.empty?
-          @logger.warn '/musalce/surface/trigger received without id'
-        elsif !@surface.known?(id)
-          @logger.warn "/musalce/surface/trigger for unknown id #{id.inspect}; ignoring"
+        event, payload = msg[1], msg[2]
+        if event.nil? || event.to_s.empty?
+          @logger.warn '/musalce/surface/trigger received without event'
+        elsif !@surface.known?(event)
+          @logger.warn "/musalce/surface/trigger for unknown event #{event.inspect}; ignoring"
         else
-          @sequencer.launch(id.to_sym, payload)
+          @sequencer.launch(event.to_sym, payload)
         end
       end
     rescue StandardError => e
