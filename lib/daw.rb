@@ -65,9 +65,9 @@ module MusaLCEServer
       @sequencer = Musa::Sequencer::Sequencer.new 4, 24, dsl_context_class: MusaLCE_Context, do_log: true
 
       @clock = Musa::Clock::InputMidiClock.new do_log: true, logger: @sequencer.logger
-      transport = Musa::Transport::Transport.new @clock, sequencer: @sequencer
+      @transport = Musa::Transport::Transport.new @clock, sequencer: @sequencer
 
-      transport.after_stop do
+      @transport.after_stop do
         sequencer.reset
       end
 
@@ -102,18 +102,27 @@ module MusaLCEServer
       # known to be alive.
       surface_bridge.request_sync
 
-      Thread.new { transport.start }
+      Thread.new { @transport.start }
     end
 
     # @!attribute [r] clock
     #   @return [Musa::Clock::InputMidiClock] the MIDI clock for synchronization
     # @!attribute [r] sequencer
     #   @return [Musa::Sequencer::Sequencer] the Musa-DSL sequencer instance
+    # @!attribute [r] transport
+    #   @return [Musa::Transport::Transport] the transport driving the
+    #     sequencer. Exposed so REPL users can register callbacks
+    #     ({Musa::Transport::Transport#on_start},
+    #     {Musa::Transport::Transport#after_stop},
+    #     {Musa::Transport::Transport#before_begin}) that survive across
+    #     DAW Stop/Play cycles — useful for re-installing +on :event+
+    #     handlers, +every+ loops or +at+ schedules that are wiped by
+    #     the built-in +after_stop { sequencer.reset }+ callback.
     # @!attribute [r] tracks
     #   @return [Object] the DAW-specific tracks collection
     # @!attribute [r] surface
     #   @return [Surface] the control surface (Stream Deck etc.)
-    attr_reader :clock, :sequencer, :tracks, :surface
+    attr_reader :clock, :sequencer, :transport, :tracks, :surface
 
     # DAW-specific initialization hook.
     #
@@ -272,17 +281,14 @@ module MusaLCEServer
     # @return [Surface] the active control surface (Stream Deck and
     #   similar hardware reached via Pulso Bridge).
     #
-    # The surface holds typed controls keyed by event id. Controls
-    # appear in the inventory once Pulso Bridge advertises them
-    # over OSC; before that, +surface[:id]+ returns +nil+.
+    # The surface holds typed controls keyed by event name. Controls
+    # appear in the inventory once Pulso Bridge advertises them over
+    # OSC; before that, +surface[:event]+ returns +nil+.
     #
-    # @example writing state from a handler
+    # @example single-line state write via {Control#set}
     #   on :launch_chorus do |payload|
     #     launch :chorus_section
-    #     surface[:launch_chorus]&.tap do |c|
-    #       c.message = 'Chorus on'
-    #       c.on!
-    #     end
+    #     surface[:launch_chorus]&.set(enabled: true, message: "Chorus on")
     #   end
     #
     # @example reading state to toggle

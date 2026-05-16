@@ -11,5 +11,5 @@
 # @since 0.1.0
 module MusaLCEServer
   # Current version of the musalce-server gem.
-  VERSION = '0.7.1'.freeze
+  VERSION = '0.7.2'.freeze
 end

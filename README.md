@@ -134,8 +134,32 @@ The following commands are available in the REPL context (executed from your edi
 daw                      # Access the DAW controller object
 daw.sequencer            # Access the Musa-DSL sequencer
 daw.clock                # Access the MIDI clock
+daw.transport            # Access the transport (callbacks survive Stop/Play)
 daw.tracks               # Access all tracks
+daw.surface              # Access the control surface (Stream Deck, etc.)
 ```
+
+#### Persistent actions across DAW Stop/Play
+
+Every DAW Stop wipes the sequencer (`at`, `every`, `play`, `on :event`
+handlers are all cleared by the built-in `transport.after_stop { sequencer.reset }`).
+Top-level Ruby state (methods, modules, constants) survives, but
+anything you scheduled or subscribed to via the sequencer DSL does
+not. To re-install those on every Play, register an `on_start`
+callback on the transport:
+
+```ruby
+daw.transport.on_start do
+  load 'persistent_actions.rb'   # rehydrate on :event, every, at, …
+end
+```
+
+`on_start` callbacks accumulate (they're an append-only list), so you
+can register more from the REPL at any time. They run on every Start,
+after the built-in `before_begin`. Use `before_begin` instead if you
+want a callback that runs **only on the very first Start** of the
+session.
+
 
 ### Track Operations
 
