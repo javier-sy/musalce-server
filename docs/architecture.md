@@ -1,6 +1,6 @@
 # MusaLCE Suite Architecture
 
-This document is the canonical reference for the **suite workflow** of MusaLCE — running [musalce-server](https://github.com/javier-sy/musalce-server) together with the per-DAW extension to drive Bitwig Studio or Ableton Live from a code editor in real time, optionally with Stream Deck integration through **Pulso** ([yeste.studio](https://yeste.studio)'s upcoming Stream Deck plugin for the MusaLCE Surface protocol; public release pending).
+This document is the canonical reference for the **suite workflow** of MusaLCE — running [musalce-server](https://github.com/javier-sy/musalce-server) together with the per-DAW extension to drive Bitwig Studio or Ableton Live from a code editor in real time, optionally with Stream Deck integration via the MusaLCE Surface relay in **Pulso** — [yeste.studio](https://yeste.studio)'s upcoming Stream Deck control system for music DAWs (Bitwig today; Ableton planned). MusaLCE Surface support is one feature of Pulso among many DAW-control features. Public release pending.
 
 It is a companion to (not a replacement for) the lower-level [musa-dsl REPL subsystem doc](https://github.com/javier-sy/musa-dsl/blob/master/docs/subsystems/repl.md), which covers the **standalone REPL** workflow (case 1). The suite documented here is **internally a specialization** of that case — `musalce-server` opens `Musa::REPL::REPL.new(binding)` after pre-building the sequencer, clock, transport, DAW handler and surface, so you don't have to.
 
@@ -10,7 +10,7 @@ It is a companion to (not a replacement for) the lower-level [musa-dsl REPL subs
 |---|---|
 | Target is Bitwig Studio or Ableton Live | Target is SuperCollider, Max/MSP, OSC apps, custom hardware |
 | You want `daw.*`, `surface[:event]` and DAW transport out of the box | You want full control over the wiring |
-| You want Stream Deck integration via Pulso (Bitwig only today) | You're prototyping a personal live-coding DSL |
+| You want a Stream Deck wired into your score via Pulso's MusaLCE Surface integration (Bitwig only today) | You're prototyping a personal live-coding DSL |
 | Worked example: `_demo-13b-live-coding-suite` (planned) | Worked example: [`_demo-13-live-coding`](https://github.com/javier-sy/musadsl-demo) |
 
 Both workflows use the same [MusaLCEClientForVSCode](https://github.com/javier-sy/MusaLCEClientForVSCode) extension; the extension does not know or care which server is on the other end of TCP/1327.
@@ -50,7 +50,7 @@ Two parallel OSC contracts cross the server ↔ extension boundary:
 | **MusaLCEforBitwig** | [MusaLCEforBitwig](https://github.com/javier-sy/MusaLCEforBitwig) | Bitwig controller extension; bridges Bitwig and musalce-server over OSC, includes the `MusaLCESurfaceRelay` for Pulso. | Java (Bitwig Extension API 18) |
 | **MusaLCEforLive** | [MusaLCEforLive](https://github.com/javier-sy/MusaLCEforLive) | Ableton Live MIDI Remote Script; bridges Live and musalce-server over OSC. Inherits `/live/*` from AbletonOSC. | Python |
 | **MusaLCEClientForVSCode** | [MusaLCEClientForVSCode](https://github.com/javier-sy/MusaLCEClientForVSCode) | VSCode extension that is a REPL client over TCP/1327. | TypeScript |
-| **Pulso Bridge** *(optional)* | *private repo (public release pending)* | Bitwig controller that bridges between MusaLCEforBitwig (Surface relay side) and the Stream Deck plugin. Part of [yeste.studio](https://yeste.studio)'s upcoming Pulso product. | Java |
+| **Pulso Bridge** *(optional)* | *private repo (public release pending)* | The DAW-side component of [yeste.studio](https://yeste.studio)'s upcoming Pulso, a Stream Deck control system for music DAWs (Bitwig today; Ableton planned). Pulso's primary scope is generic DAW control (transport, tracks, devices, browser, parameter encoders); *optionally*, Pulso Bridge can also relay the MusaLCE Surface protocol to/from MusaLCEforBitwig — that's the integration described in this doc. | Java |
 
 ## REPL DSL surface (`daw.*`)
 
@@ -206,9 +206,9 @@ Both ports are **hardcoded** on the server side (`musalce-server/lib/daw.rb`). T
 
 MusaLCEforLive inherits the full `/live/*` surface from [ideoforms/AbletonOSC](https://github.com/ideoforms/AbletonOSC) — dozens of endpoints covering volume, pan, send, clip control, devices, etc. These are not MusaLCE-specific and are not documented here; see the upstream README for the full address list.
 
-## Surface protocol — Stream Deck via Pulso (Bitwig only)
+## MusaLCE Surface protocol — Stream Deck via Pulso's MusaLCE integration (Bitwig only)
 
-The protocol carrying surface inventory, triggers and state between `musalce-server`, MusaLCEforBitwig (`MusaLCESurfaceRelay`) and Pulso Bridge is implemented in this codebase (server side) and in [`MusaLCEforBitwig/src/main/java/.../MusaLCESurfaceRelay.java`](https://github.com/javier-sy/MusaLCEforBitwig/blob/main/src/main/java/org/musadsl/musalce4bitwig/MusaLCESurfaceRelay.java) (relay side). The end-to-end wire-protocol spec lives in Pulso's repo (currently private; will be public once Pulso publishes).
+The MusaLCE Surface protocol carries surface inventory, triggers and state between `musalce-server`, MusaLCEforBitwig (`MusaLCESurfaceRelay`) and Pulso Bridge. It is one of several OSC surfaces that Pulso Bridge speaks (the rest are Pulso's own DAW-control surfaces, unrelated to MusaLCE). It is implemented in this codebase (server side) and in [`MusaLCEforBitwig/src/main/java/.../MusaLCESurfaceRelay.java`](https://github.com/javier-sy/MusaLCEforBitwig/blob/main/src/main/java/org/musadsl/musalce4bitwig/MusaLCESurfaceRelay.java) (relay side). The end-to-end wire-protocol spec lives in Pulso's repo (currently private; will be public once Pulso publishes).
 
 Quick summary of address space:
 
