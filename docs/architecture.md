@@ -1,8 +1,8 @@
-# MusaLCE Suite Architecture
+# MusaLCE Server Suite Architecture
 
-This document is the canonical reference for the **suite workflow** of MusaLCE — running [musalce-server](https://github.com/javier-sy/musalce-server) together with the per-DAW extension to drive Bitwig Studio or Ableton Live from a code editor in real time, optionally with Stream Deck integration via the MusaLCE Surface relay in **Pulso** — [yeste.studio](https://yeste.studio)'s upcoming Stream Deck workflow system for DAWs (Bitwig today; Ableton planned).
+This document is the canonical reference for the **musalce-server suite workflow** — running [musalce-server](https://github.com/javier-sy/musalce-server) together with the per-DAW extension to drive Bitwig Studio or Ableton Live from a code editor in real time, optionally with Stream Deck integration via **Pulso** — [yeste.studio](https://yeste.studio)'s upcoming Stream Deck workflow system for DAWs (Bitwig today; Ableton planned).
 
-It is a companion to (not a replacement for) the lower-level [musa-dsl REPL subsystem doc](https://github.com/javier-sy/musa-dsl/blob/master/docs/subsystems/repl.md), which covers the **standalone REPL** workflow. The suite documented here is **a specialization** of that case — `musalce-server` opens `Musa::REPL::REPL.new(binding)` after pre-building the sequencer, clock, transport, DAW handler and surface, so you don't have to. It also adds the connection to the DAW (Bitwig or Ableton Live) through *MusaLCEforBitwig*/*MusaLCEforLive* and exposes a `daw.*` object to access and to control the DAW from your editor.
+It is a companion to (not a replacement for) the lower-level [musa-dsl REPL subsystem doc](https://github.com/javier-sy/musa-dsl/blob/master/docs/subsystems/repl.md), which covers the **standalone REPL** workflow. The **musalce-server suite** documented here is **a specialization** of that case — `musalce-server` opens `Musa::REPL::REPL.new(binding)` after pre-building the sequencer, clock, transport, DAW handler and surface, so you don't have to. It also adds the connection to the DAW (Bitwig or Ableton Live) through **MusaLCEforBitwig**/**MusaLCEforLive** and exposes a `daw.*` object to access and to control the DAW from your editor.
 
 ## When to use this (vs the standalone REPL)
 
@@ -40,7 +40,7 @@ Both workflows use VS Code as editor and the same [MusaLCEClientForVSCode](https
 Two parallel OSC contracts cross the server ↔ extension boundary:
 
 - **Handler protocol** — `/musalce4bitwig/*` or `/musalce4live/*` plus a common `/hello`, `/version`, `/reload`. Carries DAW control (transport, track sync, channels). Documented [below](#osc-handler-protocol).
-- **Surface protocol** — `/musalce/surface/*`. Carries Stream Deck control state (inventory, triggers, state propagation). The canonical Pulso-side spec will be linked here once Pulso publishes.
+- **Surface protocol** — `/musalce/surface/*`. Carries elgato Stream Deck control state (inventory, triggers, state propagation). The canonical Pulso-side spec will be linked here once Pulso publishes.
 
 ## Component responsibilities
 
@@ -55,7 +55,7 @@ Two parallel OSC contracts cross the server ↔ extension boundary:
 
 ## Accessing the DAW (`daw.*`)
 
-**musalce-server** exposes to the user access to the daw through a `daw` accessor. Quick reference (full reference: [musalce-server README → REPL Commands Reference](https://github.com/javier-sy/musalce-server#readme)):
+**musalce-server** exposes to the user access to the daw through a `daw.*` accessor. Quick reference:
 
 | Accessor | Returns | What it's for |
 |---|---|---|
@@ -94,11 +94,9 @@ What survives a Stop/Play cycle:
 | `surface[:event]` **handler blocks** (`on :event do … end`) | ❌ (wiped with `@event_handlers`) |
 | `at`, `every`, `play`, `move` | ❌ |
 
-**Asymmetry warning**: the Stream Deck button keeps painting after a Stop, but pressing it dispatches to a handler that is no longer registered — silence.
-
 ### Rehydration pattern
 
-Use `daw.transport.on_start` (exposed since v0.7.2 — see [musalce-server commit `fb8480f`](https://github.com/javier-sy/musalce-server/commit/fb8480f)) to re-install handlers and schedules on every Play:
+Use `daw.transport.on_start` to re-install handlers and schedules on every Play:
 
 ```ruby
 daw.transport.on_start do
@@ -106,7 +104,7 @@ daw.transport.on_start do
 end
 ```
 
-`on_start` callbacks accumulate (append-only list), so you can register more from the REPL at any time. Use `before_begin` for callbacks that should run **only on the first Start of the session**, and `after_stop` for cleanup (e.g. `voices.panic`).
+`on_start` callbacks accumulate (it's an append-only list), so you can register more from the REPL at any time. Use `before_begin` for callbacks that should run **only on the first Start of the session**, and `after_stop` for cleanup (e.g. `voices.panic`).
 
 ## Accessing the Stream Deck (`on :event` and `surface[:event]`)
 
