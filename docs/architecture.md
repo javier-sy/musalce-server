@@ -1,8 +1,8 @@
 # MusaLCE Suite Architecture
 
-This document is the canonical reference for the **suite workflow** of MusaLCE — running [musalce-server](https://github.com/javier-sy/musalce-server) together with the per-DAW extension to drive Bitwig Studio or Ableton Live from a code editor in real time, optionally with Stream Deck integration via the MusaLCE Surface relay in **Pulso** — [yeste.studio](https://yeste.studio)'s upcoming Stream Deck control system for music DAWs (Bitwig today; Ableton planned). MusaLCE Surface support is one feature of Pulso among many DAW-control features. Public release pending.
+This document is the canonical reference for the **suite workflow** of MusaLCE — running [musalce-server](https://github.com/javier-sy/musalce-server) together with the per-DAW extension to drive Bitwig Studio or Ableton Live from a code editor in real time, optionally with Stream Deck integration via the MusaLCE Surface relay in **Pulso** — [yeste.studio](https://yeste.studio)'s upcoming Stream Deck workflow system for DAWs (Bitwig today; Ableton planned).
 
-It is a companion to (not a replacement for) the lower-level [musa-dsl REPL subsystem doc](https://github.com/javier-sy/musa-dsl/blob/master/docs/subsystems/repl.md), which covers the **standalone REPL** workflow (case 1). The suite documented here is **internally a specialization** of that case — `musalce-server` opens `Musa::REPL::REPL.new(binding)` after pre-building the sequencer, clock, transport, DAW handler and surface, so you don't have to.
+It is a companion to (not a replacement for) the lower-level [musa-dsl REPL subsystem doc](https://github.com/javier-sy/musa-dsl/blob/master/docs/subsystems/repl.md), which covers the **standalone REPL** workflow. The suite documented here is **a specialization** of that case — `musalce-server` opens `Musa::REPL::REPL.new(binding)` after pre-building the sequencer, clock, transport, DAW handler and surface, so you don't have to. It also adds the connection to the DAW (Bitwig or Ableton Live) through *MusaLCEforBitwig*/*MusaLCEforLive* and exposes a `daw.*` object to access and to control the DAW from your editor.
 
 ## When to use this (vs the standalone REPL)
 
@@ -13,7 +13,7 @@ It is a companion to (not a replacement for) the lower-level [musa-dsl REPL subs
 | You want a Stream Deck wired into your score via Pulso's MusaLCE Surface integration (Bitwig only today) | You're prototyping a personal live-coding DSL |
 | Worked example: `_demo-13b-live-coding-suite` (planned) | Worked example: [`_demo-13-live-coding`](https://github.com/javier-sy/musadsl-demo) |
 
-Both workflows use the same [MusaLCEClientForVSCode](https://github.com/javier-sy/MusaLCEClientForVSCode) extension; the extension does not know or care which server is on the other end of TCP/1327.
+Both workflows use VS Code as editor and the same [MusaLCEClientForVSCode](https://github.com/javier-sy/MusaLCEClientForVSCode) editor extension. The editor extension connects to the server via TCP socket on port 1327.
 
 ## The big picture
 
@@ -21,25 +21,26 @@ Both workflows use the same [MusaLCEClientForVSCode](https://github.com/javier-s
                                                        ┌────────────────────────────┐
                                                        │     Stream Deck plugin     │
                                                        │ (Pulso Workflow .sdPlugin) │
-                                                       └─────────────┬──────────────┘
+                                                       └────────────────────────────┘
+                                                                     ^
                                                                      │ OSC over UDP (Pulso wire)
                                                                      ▼
-┌────────────────────┐  TCP 1327     ┌──────────────────┐         ┌─────────────────────────┐         ┌──────────────────┐
-│  VSCode +          │ ◀──────────▶  │   musalce-server │  ─────▶ │ MusaLCEforBitwig        │ ◀────▶ │  Bitwig Studio   │
-│  MusaLCEClient     │   (REPL)      │   (Ruby gem)     │         │  + Pulso Bridge relay   │         └──────────────────┘
+┌────────────────────┐  TCP 1327     ┌──────────────────┐         ┌─────────────────────────┐        ┌──────────────────┐
+│  VSCode +          │ ◀──────────▶  │   musalce-server │  ◀────▶ │ MusaLCEforBitwig        │ ◀────▶ │  Bitwig Studio   │
+│  MusaLCEClient     │   (REPL)      │   (Ruby gem)     │         │  + Pulso Bridge relay   │        └──────────────────┘
 │  ForVSCode         │               │                  │  UDP    └─────────────────────────┘
 └────────────────────┘               │  • REPL          │  OSC                  OR
                                      │  • Sequencer     │
-                                     │  • DAW handler   │  ─────▶ ┌─────────────────────────┐         ┌──────────────────┐
+                                     │  • DAW handler   │  ◀────▶ ┌─────────────────────────┐        ┌──────────────────┐
                                      │  • Surface       │         │ MusaLCEforLive          │ ◀────▶ │  Ableton Live    │
-                                     │  • MIDI out      │         │  (Python)               │         └──────────────────┘
+                                     │  • MIDI out      │         │  (Python)               │        └──────────────────┘
                                      └──────────────────┘         └─────────────────────────┘
 ```
 
 Two parallel OSC contracts cross the server ↔ extension boundary:
 
 - **Handler protocol** — `/musalce4bitwig/*` or `/musalce4live/*` plus a common `/hello`, `/version`, `/reload`. Carries DAW control (transport, track sync, channels). Documented [below](#osc-handler-protocol).
-- **Surface protocol** — `/musalce/surface/*`. Carries Stream Deck control state (inventory, triggers, state propagation). Documented in `MusaLCEforBitwig/src/main/java/.../MusaLCESurfaceRelay.java` (javadoc) and summarised below. The canonical Pulso-side spec will be linked here once Pulso publishes. Bitwig only today; Live side not implemented.
+- **Surface protocol** — `/musalce/surface/*`. Carries Stream Deck control state (inventory, triggers, state propagation). The canonical Pulso-side spec will be linked here once Pulso publishes.
 
 ## Component responsibilities
 
@@ -50,11 +51,11 @@ Two parallel OSC contracts cross the server ↔ extension boundary:
 | **MusaLCEforBitwig** | [MusaLCEforBitwig](https://github.com/javier-sy/MusaLCEforBitwig) | Bitwig controller extension; bridges Bitwig and musalce-server over OSC, includes the `MusaLCESurfaceRelay` for Pulso. | Java (Bitwig Extension API 18) |
 | **MusaLCEforLive** | [MusaLCEforLive](https://github.com/javier-sy/MusaLCEforLive) | Ableton Live MIDI Remote Script; bridges Live and musalce-server over OSC. Inherits `/live/*` from AbletonOSC. | Python |
 | **MusaLCEClientForVSCode** | [MusaLCEClientForVSCode](https://github.com/javier-sy/MusaLCEClientForVSCode) | VSCode extension that is a REPL client over TCP/1327. | TypeScript |
-| **Pulso Bridge** *(optional)* | *private repo (public release pending)* | The DAW-side component of [yeste.studio](https://yeste.studio)'s upcoming Pulso, a Stream Deck control system for music DAWs (Bitwig today; Ableton planned). Pulso's primary scope is generic DAW control (transport, tracks, devices, browser, parameter encoders); *optionally*, Pulso Bridge can also relay the MusaLCE Surface protocol to/from MusaLCEforBitwig — that's the integration described in this doc. | Java |
+| **Pulso Bridge** *(optional)* | *public release pending* | The DAW-side component of [yeste.studio](https://yeste.studio)'s upcoming Pulso, a Stream Deck workflow system for DAWs (Bitwig today; Ableton planned). Pulso's primary scope is generic DAW control (transport, tracks, devices, browser, parameter encoders); Pulso Bridge can also relay user actions and feedback data to/from the Stream Deck through the MusaLCE Surface protocol in MusaLCEforBitwig/Live — that's the integration described in this doc. | Java |
 
-## REPL DSL surface (`daw.*`)
+## Accessing the DAW (`daw.*`)
 
-The DSL context exposed in the REPL of the suite workflow extends what's available in the standalone REPL with a `daw` accessor. Quick reference (full reference: [musalce-server README → REPL Commands Reference](https://github.com/javier-sy/musalce-server#readme)):
+**musalce-server** exposes to the user access to the daw through a `daw` accessor. Quick reference (full reference: [musalce-server README → REPL Commands Reference](https://github.com/javier-sy/musalce-server#readme)):
 
 | Accessor | Returns | What it's for |
 |---|---|---|
@@ -66,58 +67,6 @@ The DSL context exposed in the REPL of the suite workflow extends what's availab
 | `daw.surface` | `Surface` | Stream Deck / hardware surface object — `surface[:event]` (see below) |
 | `daw.play`, `daw.stop`, `daw.continue`, `daw.goto(bar)`, `daw.record` | — | Transport remote control. **Bitwig only** (Live API limitation). |
 | `daw.panic!` | — | All-notes-off to every track |
-
-## `surface[:event]` DSL — Stream Deck integration
-
-A *Surface* control is named by an **event Symbol** that doubles as the identifier the sequencer uses when dispatching from a physical control. The surface is registered by an external bridge — Pulso when published — via the inventory protocol; the server **owns the state** (message, enabled, value, range) and propagates changes outbound.
-
-There are three control types: **Toggle**, **Trigger** and **Encoder**.
-
-### Trigger — momentary
-
-```ruby
-# In score code:
-surface[:launch_chorus].set(message: "Chorus")
-
-on :launch_chorus do |payload|
-  puts "Stream Deck button fired (#{payload.inspect})"
-  # ... schedule the chorus section ...
-end
-```
-
-A Trigger has no persistent state beyond an optional `message`. Pressing the Stream Deck button reaches the `on :launch_chorus do |payload| … end` handler through the sequencer's event dispatch.
-
-### Toggle — three-state (Action / Ready / Idle)
-
-```ruby
-surface[:mode].set(message: "Verse", enabled: true)
-
-on :mode do |payload|
-  if surface[:mode].enabled
-    surface[:mode].enabled = false
-    # ... toggle off behaviour ...
-  else
-    surface[:mode].enabled = true
-    # ... toggle on behaviour ...
-  end
-end
-```
-
-`enabled` accepts `true` / `false` / `:inactive` — Pulso paints the three states with distinct palettes (Action / Ready / Idle).
-
-### Encoder — integer with range
-
-```ruby
-surface[:tempo].set(value: 120, range: [60, 200], message: "BPM")
-
-on :tempo do |payload|
-  new_value = payload[:value].to_i
-  surface[:tempo].value = new_value
-  # ... apply tempo change ...
-end
-```
-
-The encoder owns its `value` (an integer) and its `range` (min, max integers). State propagates back to the Stream Deck plugin so the key/dial repaints.
 
 ## Stop/Play semantics
 
@@ -158,6 +107,16 @@ end
 ```
 
 `on_start` callbacks accumulate (append-only list), so you can register more from the REPL at any time. Use `before_begin` for callbacks that should run **only on the first Start of the session**, and `after_stop` for cleanup (e.g. `voices.panic`).
+
+## Accessing the Stream Deck (`on :event` and `surface[:event]`)
+
+In Stream Deck Pulso Workflow plugin the user has several kinds of buttons and encoders that can trigger events on the user MusaDSL code (as MusaDSL Sequencer Events with parameters). This allows the user to control the behaviour of his MusaDSL code in realtime using an elgato Stream Deck device.
+
+The buttons and encoders are identified with a `event` name. This `event` name is the one launched on the `musalce-server` **Sequencer** and the one the user can subscribe from his code with `on :event |parameters| do ... end` commands.
+
+Also, the user can update the visible content on the buttons and encoders on the Stream Deck device using the `surface[:event].set parameter: value, parameter: value` commands.
+
+Pulso Bridge is aware of MusaLCEforBitwig/Live through a pair of configurable OSC ports and both coordinate the bidirectional communication between Stream Deck and MusaDSL code in the user session.
 
 ## OSC handler protocol
 
@@ -202,36 +161,14 @@ Both ports are **hardcoded** on the server side (`musalce-server/lib/daw.rb`). T
 | ext → server | `/musalce4live/track/audio` | bulk (sliced 3) | Audio track metadata. |
 | ext → server | `/musalce4live/track/routings` | bulk (sliced 5) | Routing metadata. |
 
-### `/live/*` — inherited from AbletonOSC (Live only)
+## MusaLCE Surface protocol — elgato Stream Deck via Pulso's MusaLCE integration (Bitwig only)
 
-MusaLCEforLive inherits the full `/live/*` surface from [ideoforms/AbletonOSC](https://github.com/ideoforms/AbletonOSC) — dozens of endpoints covering volume, pan, send, clip control, devices, etc. These are not MusaLCE-specific and are not documented here; see the upstream README for the full address list.
-
-## MusaLCE Surface protocol — Stream Deck via Pulso's MusaLCE integration (Bitwig only)
-
-The MusaLCE Surface protocol carries surface inventory, triggers and state between `musalce-server`, MusaLCEforBitwig (`MusaLCESurfaceRelay`) and Pulso Bridge. It is one of several OSC surfaces that Pulso Bridge speaks (the rest are Pulso's own DAW-control surfaces, unrelated to MusaLCE). It is implemented in this codebase (server side) and in [`MusaLCEforBitwig/src/main/java/.../MusaLCESurfaceRelay.java`](https://github.com/javier-sy/MusaLCEforBitwig/blob/main/src/main/java/org/musadsl/musalce4bitwig/MusaLCESurfaceRelay.java) (relay side). The end-to-end wire-protocol spec lives in Pulso's repo (currently private; will be public once Pulso publishes).
-
-Quick summary of address space:
+The MusaLCE Surface protocol carries surface inventory, triggers and state between **musalce-server**, **MusaLCEforBitwig** and **Pulso Bridge**.
 
 - `/musalce/surface/inventory/{begin,add,remove,end}` — surface inventory (Pulso → server)
 - `/musalce/surface/trigger event payload` — Pulso → server, dispatched to `on :event` via `@sequencer.launch`
 - `/musalce/surface/state/{message,enabled,value,range} event …` — server → Pulso, repaints the Stream Deck
 - `/musalce/surface/sync_request`, `/musalce/surface/state_request` — handshake messages
-
-In the suite the relay is implemented on the Bitwig side only (`MusaLCEforBitwig/.../MusaLCESurfaceRelay.java`). **There is no Live-side relay yet** — Stream Deck integration is Bitwig-only at the time of writing.
-
-## Current versions
-
-| Component | Version |
-|---|---|
-| musa-dsl | 0.42.7+ |
-| musalce-server | 0.7.2 |
-| MusaLCEforBitwig | from `git describe` (typically `0.x`) |
-| MusaLCEforLive | (no semver published) |
-| MusaLCEClientForVSCode | 0.1.0 |
-| Pulso Bridge | 0.x (private repo; pinned by commit until Pulso publishes) |
-| Pulso Workflow (Stream Deck plugin) | matches Bridge |
-
-Stay on the same release branch across components — pin musalce-server in your `Gemfile.lock`, build the matching `.bwextension`/Remote Script from the same point in time. There's no semantic compatibility matrix today; protocol changes are coordinated across components by commit (see e.g. the simultaneous `id → event` rename in musalce-server `346fe51` ↔ pulso `0c6536f` ↔ MusaLCEforBitwig `33e4d7c`).
 
 ## Where to go next
 
@@ -239,4 +176,5 @@ Stay on the same release branch across components — pin musalce-server in your
 - Reference the **REPL commands** (`daw.*`, transport controls, sequencer DSL) of the suite: [musalce-server README](https://github.com/javier-sy/musalce-server#readme).
 - Configure the **DAW extensions**: [MusaLCEforBitwig README](https://github.com/javier-sy/MusaLCEforBitwig#readme), [MusaLCEforLive README](https://github.com/javier-sy/MusaLCEforLive#readme).
 - Wire the **VSCode editor**: [MusaLCEClientForVSCode README](https://github.com/javier-sy/MusaLCEClientForVSCode#readme).
-- Wire the **Stream Deck** (Bitwig only): pending Pulso's public release. The relay side is implemented in [`MusaLCEforBitwig/src/main/java/.../MusaLCESurfaceRelay.java`](https://github.com/javier-sy/MusaLCEforBitwig/blob/main/src/main/java/org/musadsl/musalce4bitwig/MusaLCESurfaceRelay.java) and ready for Pulso to connect once it ships.
+- Wire the **Stream Deck** (Bitwig only): pending Pulso's public release.
+
