@@ -1,20 +1,20 @@
-# MusaLCE Server
+# MusaLCE Server Suite
 
 [![Ruby Version](https://img.shields.io/badge/ruby-2.7+-red.svg)](https://www.ruby-lang.org/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 
-**Musa-DSL Live Coding Environment Server for Ableton Live 11+ and Bitwig Studio 5+**
+**Musa-DSL Live Coding Environment Server Suite for Ableton Live 11+ and Bitwig Studio 5+**
 
 This server enables live coding music composition using [Musa-DSL](https://github.com/javier-sy/musa-dsl) with your favorite DAW and code editor.
 
 ## Overview
 
-The MusaLCE system allows you to write Ruby code in your editor (Visual Studio Code recommended) and have it executed in real-time, sending MIDI to tracks in your DAW. The typical workflow is:
+The MusaLCE Server Suite system allows you to write Ruby code in your editor (Visual Studio Code) and have it executed in real-time, sending MIDI to tracks in your DAW. The typical workflow is:
 
-1. Start the MusaLCE Server with your DAW choice
-2. Open your code editor with the MusaLCE extension
+1. Start the MusaLCE Server Suite with/inside your DAW choice (Bitwig Studio or Ableton Live)
+2. Open your VS Code editor with the MusaLCE extension (MusaLCEforVSCode)
 3. Write and execute Musa-DSL code interactively
-4. The code controls MIDI instruments in your DAW
+4. The code controls MIDI instruments and transport in your DAW
 
 ## Requirements
 
@@ -25,7 +25,7 @@ The MusaLCE system allows you to write Ruby code in your editor (Visual Studio C
   - **Ableton Live 11+** with [MusaLCE for Live](https://github.com/javier-sy/MusaLCEforLive) MIDI Remote Script
 - A code editor with MusaLCE client extension:
   - **Visual Studio Code** (recommended) with [MusaLCE Client for VSCode](https://github.com/javier-sy/MusaLCEClientForVSCode)
-  - Atom with [MusaLCE Client for Atom](https://github.com/javier-sy/MusaLCEClientForAtom) (Atom is discontinued)
+  - Atom with [MusaLCE Client for Atom](https://github.com/javier-sy/MusaLCEClientForAtom) (not recommended because Atom is discontinued)
 
 ## Installation
 
@@ -43,12 +43,12 @@ gem install musalce-server
 
 ## Quick Start
 
-1. **Install the DAW controller extension** for your DAW (Bitwig or Live)
+1. **Install the DAW controller extension** for your DAW (for Bitwig: [MusaLCE for Bitwig](https://github.com/javier-sy/MusaLCEforBitwig), for Ableton Live: [MusaLCE for Live](https://github.com/javier-sy/MusaLCEforLive))
 2. **Install the VSCode extension** [MusaLCE Client for VSCode](https://github.com/javier-sy/MusaLCEClientForVSCode)
-3. **Start your DAW** and ensure the MusaLCE controller is loaded
+3. **Start your DAW** and ensure the MusaLCE controller is loaded and configured
 4. **Start the server** (see below)
 5. **Open VSCode** and create a `.rb` file
-6. **Execute code** using the MusaLCE extension commands
+6. **Execute code** using the MusaLCE extension commands (Ctrl+Alt+Return, Ctrl+Alt+M)
 
 ## Starting the Server
 
@@ -73,7 +73,7 @@ The server runs in the foreground and logs activity to the console. Use `Ctrl+C`
 
 ## Running Environment
 
-A complete MusaLCE live coding session requires **three components running simultaneously**:
+A complete MusaLCE Server Suite live coding session requires **three components running simultaneously**:
 
 1. **Code Editor** (Visual Studio Code with MusaLCE extension)
    - Where you write and execute Ruby/Musa-DSL code
@@ -133,10 +133,10 @@ The following commands are available in the REPL context (executed from your edi
 ```ruby
 daw                      # Access the DAW controller object
 daw.sequencer            # Access the Musa-DSL sequencer
-daw.clock                # Access the MIDI clock
-daw.transport            # Access the transport (callbacks survive Stop/Play)
-daw.tracks               # Access all tracks
-daw.surface              # Access the control surface (Stream Deck, etc.)
+daw.clock                # Access the Musa-DSL MIDI clock
+daw.transport            # Access the Musa-DSL transport
+daw.tracks               # Access all tracks on the daw by name
+daw.surface              # Access the control surface (currently elgato Stream Deck)
 ```
 
 #### Persistent actions across DAW Stop/Play
@@ -181,7 +181,7 @@ bass.out.all_notes_off
 
 ### Transport Controls
 
-Transport controls send commands to the DAW. **Only available for Bitwig Studio** (Live's MIDI Remote Script API doesn't support transport control).
+Transport controls send commands to the DAW. **Only available for Bitwig Studio** (Live's controller doesn't support transport control by now).
 
 ```ruby
 daw.play                 # Start playback
@@ -260,18 +260,18 @@ daw.panic!               # Send All Notes Off to all tracks
 shutdown                 # Stop the server
 ```
 
-### Module Import
-
-```ruby
-# Import additional modules into the REPL context
-import(MyHelperModule)
-```
-
 ### File Require
 
 ```ruby
 # Require files relative to your editor's current file
 require_relative 'my_patterns'
+```
+
+### Module Import
+
+```ruby
+# Import additional modules into the REPL context
+import(MyHelperModule)
 ```
 
 ## DAW-Specific Notes
@@ -283,15 +283,15 @@ Requires [MusaLCE for Bitwig](https://github.com/javier-sy/MusaLCEforBitwig) con
 - Full transport control support (play, stop, continue, goto, record)
 - Track names must be unique
 - MIDI clock sync from any controller marked as clock source
-- Controllers and channels configured in the Bitwig extension
+- Controllers and channels should be configured in the Bitwig extension
 
 ### Ableton Live
 
 Requires [MusaLCE for Live](https://github.com/javier-sy/MusaLCEforLive) MIDI Remote Script.
 
-- **No transport control** (Live's MIDI Remote Script API limitation)
+- **No transport control** by now
 - Multiple tracks can have the same name
-- Use `daw.midi_sync('Device Name')` to set MIDI clock source
+- Use `daw.midi_sync('MIDI Device Name')` to set MIDI clock source
 - Track routing configured in Live's preferences
 
 ```ruby
@@ -307,19 +307,8 @@ daw.midi_sync('IAC Driver Bus 1')
 | [MusaLCE Server](https://github.com/javier-sy/musalce-server) | Live coding server (this gem) |
 | [MusaLCE for Bitwig](https://github.com/javier-sy/MusaLCEforBitwig) | Bitwig Studio controller extension |
 | [MusaLCE for Live](https://github.com/javier-sy/MusaLCEforLive) | Ableton Live MIDI Remote Script |
-| [MusaLCE Client for VSCode](https://github.com/javier-sy/MusaLCEClientForVSCode) | VSCode extension (recommended) |
+| [MusaLCE Client for VSCode](https://github.com/javier-sy/MusaLCEClientForVSCode) | VSCode extension |
 | [MusaLCE Client for Atom](https://github.com/javier-sy/MusaLCEClientForAtom) | Atom plugin (discontinued) |
-
-## Documentation
-
-API documentation is available via YARD:
-
-```bash
-bundle exec yard doc
-bundle exec yard server
-```
-
-Then open http://localhost:8808 in your browser.
 
 ## Author
 
