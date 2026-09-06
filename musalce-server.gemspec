@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'musa-dsl', '~> 0.40'
 
-  s.add_runtime_dependency 'midi-communications', '~> 0.7'
+  s.add_runtime_dependency 'midi-communications', '~> 0.7', '>= 0.7.1'
   s.add_runtime_dependency 'midi-events', '~> 0.7'
   s.add_runtime_dependency 'midi-parser', '~> 0.5'
 

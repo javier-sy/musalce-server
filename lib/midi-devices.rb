@@ -32,18 +32,28 @@ module MusaLCEServer
     #
     # @return [void]
     def sync
-      names = @low_level_devices.keys
+      # Without this, MIDICommunications answers from the list it built the
+      # first time it was asked, and nothing plugged in since would ever be
+      # seen -- which made the sentence above false.
+      MIDICommunications::Loader.refresh
+
+      missing = @low_level_devices.keys
 
       MIDICommunications::Output.all.each do |low_level_device|
-        next if @low_level_devices.key?(low_level_device.name)
+        name = low_level_device.name
 
-        @low_level_devices[low_level_device.name] = MIDIDevice.new(@sequencer, low_level_device)
-        names.delete low_level_device.name
+        # Outside the guard below, deliberately: seeing a device is what marks
+        # it as still connected, whether or not it is one we already had.
+        missing.delete name
+
+        next if @low_level_devices.key?(name)
+
+        @low_level_devices[name] = MIDIDevice.new(@sequencer, low_level_device)
       end
 
       # remove disconnected devices
       #
-      names.each do |name|
+      missing.each do |name|
         @low_level_devices.delete name
       end
     end
